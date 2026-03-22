@@ -740,6 +740,13 @@ export default function App() {
 
   if (mobile) return (
     <div style={{ height:"100dvh",display:"flex",flexDirection:"column",background:C.cream,fontFamily:"'Segoe UI',system-ui,sans-serif",color:C.text }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", background:C.white, borderBottom:`1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50% 50% 50% 12%", background: C.forest, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🐾</div>
+          <span style={{ fontWeight: 800, fontSize: 16, color: C.forest }}>PetLink</span>
+        </div>
+        <button onClick={() => { setUser(null); setTab("dashboard"); }} title="Sair" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20 }}>🚪</button>
+      </div>
       <div style={{ flex:1,overflowY:"auto",padding:"20px 16px 16px" }}>{screens[tab]}</div>
       <div style={{ display:"flex",background:C.white,borderTop:`1px solid ${C.border}`,padding:"6px 0 env(safe-area-inset-bottom,6px)" }}>
         {TABS.map(t=>(

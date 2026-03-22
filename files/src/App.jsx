@@ -26,7 +26,7 @@ const iBtn = (filled, color) => ({
 });
 const INPUT = { width:"100%", background:C.white, border:`1.5px solid ${C.border}`, borderRadius:10, padding:"10px 14px", fontSize:13, color:C.text, outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
 const LBL   = { fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:".05em", marginBottom:5, display:"block" };
-const STATUS_COLORS = { "a decorrer":["#c47a00","#fff3e0"], "confirmado":["#16773a","#dcf0e3"], "pendente":["#5a6a7a","#f0f4f8"], "rejeitado":[C.red,"#fde8d8"] };
+const STATUS_COLORS = { "a decorrer":["#c47a00","#fff3e0"], "confirmado":["#16773a","#dcf0e3"], "pendente":["#5a6a7a","#f0f4f8"], "rejeitado":[C.red,"#fde8d8"], "orçamento_enviado":["#6c5ce7","#ede8fc"] };
 
 const Badge = ({ color, bg, children }) => (
   <span style={{ background:bg, color, borderRadius:100, padding:"2px 9px", fontSize:11, fontWeight:700, whiteSpace:"nowrap" }}>{children}</span>
@@ -414,8 +414,10 @@ function CaregiversScreen({ user, ownerPets, bookings, setBookings }) {
 /* ─────────────────────────────────────────────
    DONO: BOOKINGS
 ───────────────────────────────────────────── */
-function DonoBookingsScreen({ user, bookings }) {
+function DonoBookingsScreen({ user, bookings, setBookings }) {
   const mine = bookings.filter(b=>b.owner_id===user.id);
+  const update = (id, fields) => setBookings(bs => bs.map(b => b.id===id ? {...b,...fields} : b));
+
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
       <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>As minhas reservas</h2>
@@ -426,25 +428,49 @@ function DonoBookingsScreen({ user, bookings }) {
           <div style={{ fontSize:13, marginTop:6 }}>Vai a Cuidadores para fazer a primeira reserva!</div>
         </div>
       )}
-      {["a decorrer","confirmado","pendente","rejeitado"].map(status=>{
+      {["a decorrer","orçamento_enviado","confirmado","pendente","rejeitado"].map(status=>{
         const list = mine.filter(b=>b.status===status);
         if (!list.length) return null;
-        const labels={ "a decorrer":"A decorrer","confirmado":"Confirmado","pendente":"Aguarda confirmação","rejeitado":"Rejeitado" };
+        const labels={ "a decorrer":"A decorrer","orçamento_enviado":"Orçamento recebido — aguarda a tua resposta","confirmado":"Confirmado","pendente":"Aguarda orçamento","rejeitado":"Rejeitado" };
         return (
           <div key={status}>
             <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:".06em",marginBottom:8 }}>{labels[status]}</div>
             {list.map(b=>{ const cU=USERS.find(u=>u.id===b.caregiver_id); const pet=PETS.find(p=>p.id===b.pet_id); return (
-              <div key={b.id} style={{ ...card, display:"flex", alignItems:"center", gap:12, marginBottom:8 }}>
-                <div style={{ width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.mint},${C.moss})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{cU?.avatar}</div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700,fontSize:14 }}>{pet?.species} {pet?.name} com {cU?.name}</div>
-                  <div style={{ color:C.muted,fontSize:13,marginTop:2 }}>{b.service} · {b.date} {b.time}</div>
-                  {b.notes&&<div style={{ fontSize:12,color:C.muted,fontStyle:"italic",marginTop:2 }}>"{b.notes}"</div>}
+              <div key={b.id} style={{ ...card, marginBottom:10, border: status==="orçamento_enviado" ? `2px solid ${C.purple}` : `1px solid ${C.border}` }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom: b.quote_price ? 12 : 0 }}>
+                  <div style={{ width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.mint},${C.moss})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{cU?.avatar}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700,fontSize:14 }}>{pet?.species} {pet?.name} com {cU?.name}</div>
+                    <div style={{ color:C.muted,fontSize:13,marginTop:2 }}>{b.service} · {b.date} {b.time}</div>
+                    {b.notes&&<div style={{ fontSize:12,color:C.muted,fontStyle:"italic",marginTop:2 }}>"{b.notes}"</div>}
+                  </div>
+                  <div style={{ textAlign:"right", flexShrink:0 }}>
+                    <div style={{ fontWeight:700,color:C.forest,fontSize:15,marginBottom:4 }}>{b.quote_price||b.price}€</div>
+                    <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
+                  </div>
                 </div>
-                <div style={{ textAlign:"right", flexShrink:0 }}>
-                  <div style={{ fontWeight:700,color:C.forest,fontSize:15,marginBottom:4 }}>{b.price}€</div>
-                  <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
-                </div>
+
+                {/* Quote details for dono to review */}
+                {status==="orçamento_enviado" && b.quote_price && (
+                  <>
+                    <div style={{ background:"#ede8fc", borderRadius:12, padding:14, marginBottom:12, border:"1px solid #c8b8f8" }}>
+                      <div style={{ fontSize:11, color:C.purple, fontWeight:700, textTransform:"uppercase", marginBottom:10 }}>💶 Orçamento do cuidador</div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom: b.quote_notes ? 10 : 0 }}>
+                        {[["Valor",`${b.quote_price}€`],["Data",`${b.quote_date||b.date}`],["Hora",`${b.quote_time||b.time}`],["Cuidador",cU?.name]].map(([k,v])=>(
+                          <div key={k} style={{ background:"rgba(255,255,255,0.7)", borderRadius:9, padding:"8px 10px" }}>
+                            <div style={{ fontSize:10,color:C.purple,fontWeight:700,textTransform:"uppercase" }}>{k}</div>
+                            <div style={{ fontWeight:700,fontSize:14,marginTop:2,color:C.purple }}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {b.quote_notes && <div style={{ fontSize:13, color:"#6c5ce7", fontStyle:"italic" }}>📝 "{b.quote_notes}"</div>}
+                    </div>
+                    <div style={{ display:"flex", gap:8 }}>
+                      <button onClick={()=>update(b.id,{status:"confirmado",price:b.quote_price,date:b.quote_date||b.date,time:b.quote_time||b.time})} style={{ ...iBtn(true),flex:1,textAlign:"center",padding:"12px 0" }}>✅ Aceitar orçamento</button>
+                      <button onClick={()=>update(b.id,{status:"rejeitado"})} style={{ ...iBtn(true),background:C.red,padding:"12px 16px" }}>❌</button>
+                    </div>
+                  </>
+                )}
               </div>
             );})}
           </div>
@@ -461,6 +487,7 @@ function DonoDashboard({ user, setTab, ownerPets, bookings, alerts }) {
   const mine    = bookings.filter(b=>b.owner_id===user.id);
   const active  = mine.find(b=>b.status==="a decorrer");
   const pending = mine.filter(b=>b.status==="pendente").length;
+  const quotePending = mine.filter(b=>b.status==="orçamento_enviado").length;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -468,7 +495,7 @@ function DonoDashboard({ user, setTab, ownerPets, bookings, alerts }) {
         <div><p style={{ color:C.muted,fontSize:13,margin:0 }}>Bom dia 👋</p><h1 style={{ margin:0,fontSize:20,fontWeight:800 }}>Olá, {user.name.split(" ")[0]}</h1></div>
         <div style={{ position:"relative", cursor:"pointer" }}>
           <div style={{ width:40,height:40,borderRadius:"50%",background:C.forest,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18 }}>🔔</div>
-          {pending>0&&<div style={{ position:"absolute",top:-2,right:-2,width:16,height:16,background:C.amber,borderRadius:"50%",border:"2px solid "+C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700 }}>{pending}</div>}
+          {(pending+quotePending)>0&&<div style={{ position:"absolute",top:-2,right:-2,width:16,height:16,background:C.amber,borderRadius:"50%",border:"2px solid "+C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700 }}>{pending+quotePending}</div>}
         </div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
@@ -488,6 +515,13 @@ function DonoDashboard({ user, setTab, ownerPets, bookings, alerts }) {
             <div style={{ fontWeight:700,fontSize:15 }}>{PETS.find(p=>p.id===active.pet_id)?.name} com {USERS.find(u=>u.id===active.caregiver_id)?.name}</div>
             <div style={{ fontSize:12,opacity:.8 }}>{active.service} · {active.date}</div>
           </div>
+        </div>
+      )}
+      {quotePending>0&&(
+        <div onClick={()=>setTab("bookings")} style={{ ...card,background:"#ede8fc",border:"2px solid #c8b8f8",cursor:"pointer",display:"flex",alignItems:"center",gap:12 }}>
+          <span style={{ fontSize:24 }}>💶</span>
+          <div style={{ flex:1 }}><div style={{ fontWeight:700,fontSize:14,color:C.purple }}>{quotePending} orçamento{quotePending>1?"s":""} a aguardar a tua resposta</div><div style={{ fontSize:13,color:"#9b8fd4" }}>Toca para ver e aceitar</div></div>
+          <span style={{ fontSize:18,color:C.purple }}>›</span>
         </div>
       )}
       {pending>0&&(
@@ -569,55 +603,186 @@ function CuidadorDashboard({ user, profile, bookings, setTab }) {
 }
 
 /* ─────────────────────────────────────────────
-   CUIDADOR: REQUESTS / AGENDA
+   CUIDADOR: AGENDA (confirmed/active only)
 ───────────────────────────────────────────── */
-function CuidadorRequests({ user, bookings, setBookings, scheduleOnly }) {
-  const mine = bookings.filter(b=>b.caregiver_id===user.id && (scheduleOnly ? ["confirmado","a decorrer"].includes(b.status) : true));
-  const update = (id, status) => setBookings(bs=>bs.map(b=>b.id===id?{...b,status}:b));
+function CuidadorAgenda({ user, bookings, setBookings }) {
+  const mine = bookings.filter(b => b.caregiver_id===user.id && ["confirmado","a decorrer"].includes(b.status));
+  const update = (id, status) => setBookings(bs => bs.map(b => b.id===id ? {...b, status} : b));
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>{scheduleOnly?"📅 Agenda":"📩 Pedidos"}</h2>
+      <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>📅 Agenda</h2>
       {mine.length===0 && (
-        <div style={{ ...card,textAlign:"center",padding:40,color:C.muted }}>
-          <div style={{ fontSize:40,marginBottom:12 }}>{scheduleOnly?"🗓️":"📭"}</div>
-          <div style={{ fontWeight:600 }}>{scheduleOnly?"Sem serviços confirmados":"Sem pedidos ainda"}</div>
+        <div style={{ ...card, textAlign:"center", padding:40, color:C.muted }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🗓️</div>
+          <div style={{ fontWeight:600 }}>Sem serviços confirmados</div>
+          <div style={{ fontSize:13, marginTop:6 }}>Os pedidos aceites aparecem aqui.</div>
         </div>
       )}
-      {(scheduleOnly?["a decorrer","confirmado"]:["pendente","a decorrer","confirmado","rejeitado"]).map(status=>{
-        const list = mine.filter(b=>b.status===status);
+      {["a decorrer","confirmado"].map(status => {
+        const list = mine.filter(b => b.status===status);
         if (!list.length) return null;
-        const labels={ "pendente":"Aguarda resposta","a decorrer":"A decorrer","confirmado":"Confirmados","rejeitado":"Rejeitados" };
+        const labels = { "a decorrer":"🟠 A decorrer", "confirmado":"✅ Confirmados" };
         return (
           <div key={status}>
-            <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:".06em",marginBottom:8 }}>{labels[status]} ({list.length})</div>
-            {list.map(b=>{ const owner=USERS.find(u=>u.id===b.owner_id); const pet=PETS.find(p=>p.id===b.pet_id); return (
-              <div key={b.id} style={{ ...card,marginBottom:10 }}>
-                <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:10 }}>
-                  <div style={{ width:40,height:40,borderRadius:"50%",background:`linear-gradient(135deg,${C.mint},${C.moss})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{owner?.avatar}</div>
-                  <div style={{ flex:1 }}><div style={{ fontWeight:700,fontSize:14 }}>{owner?.name}</div><div style={{ color:C.muted,fontSize:12 }}>{owner?.phone}</div></div>
-                  <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
-                </div>
-                <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10 }}>
-                  {[["Animal",`${pet?.species} ${pet?.name}`],["Serviço",b.service],["Data",`${b.date} ${b.time}`],["Valor",`${b.price}€`]].map(([k,v])=>(
-                    <div key={k} style={{ background:C.pale,borderRadius:10,padding:"8px 10px" }}><div style={{ fontSize:10,color:C.muted,fontWeight:700,textTransform:"uppercase" }}>{k}</div><div style={{ fontWeight:600,fontSize:13,marginTop:2 }}>{v}</div></div>
-                  ))}
-                </div>
-                {b.notes&&<div style={{ background:"#f8faf9",borderRadius:10,padding:"8px 12px",fontSize:13,color:C.muted,marginBottom:10,fontStyle:"italic" }}>📝 "{b.notes}"</div>}
-                {status==="pendente"&&(
-                  <div style={{ display:"flex",gap:8 }}>
-                    <button onClick={()=>update(b.id,"confirmado")} style={{ ...iBtn(true),flex:1,textAlign:"center",padding:"10px 0" }}>✅ Aceitar</button>
-                    <button onClick={()=>update(b.id,"rejeitado")}  style={{ ...iBtn(true),background:C.red,flex:1,textAlign:"center",padding:"10px 0" }}>❌ Rejeitar</button>
+            <div style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:".06em", marginBottom:8 }}>{labels[status]} ({list.length})</div>
+            {list.map(b => {
+              const owner = USERS.find(u => u.id===b.owner_id);
+              const pet   = PETS.find(p => p.id===b.pet_id);
+              return (
+                <div key={b.id} style={{ ...card, marginBottom:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <div style={{ width:40,height:40,borderRadius:"50%",background:`linear-gradient(135deg,${C.mint},${C.moss})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{owner?.avatar}</div>
+                    <div style={{ flex:1 }}><div style={{ fontWeight:700, fontSize:14 }}>{owner?.name}</div><div style={{ color:C.muted, fontSize:12 }}>{owner?.phone}</div></div>
+                    <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
                   </div>
-                )}
-                {status==="confirmado"&&(
-                  <button onClick={()=>update(b.id,"a decorrer")} style={{ ...iBtn(true),width:"100%",textAlign:"center",padding:"10px 0",background:C.amber }}>▶ Iniciar serviço</button>
-                )}
-                {status==="a decorrer"&&(
-                  <button onClick={()=>update(b.id,"confirmado")} style={{ ...iBtn(false),width:"100%",textAlign:"center",padding:"10px 0" }}>✓ Concluir serviço</button>
-                )}
-              </div>
-            );})}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:10 }}>
+                    {[["Animal",`${pet?.species} ${pet?.name}`],["Serviço",b.service],["Data",`${b.date} ${b.time}`],["Valor",`${b.quote_price||b.price}€`]].map(([k,v])=>(
+                      <div key={k} style={{ background:C.pale,borderRadius:10,padding:"8px 10px" }}><div style={{ fontSize:10,color:C.muted,fontWeight:700,textTransform:"uppercase" }}>{k}</div><div style={{ fontWeight:600,fontSize:13,marginTop:2 }}>{v}</div></div>
+                    ))}
+                  </div>
+                  {b.notes && <div style={{ background:"#f8faf9",borderRadius:10,padding:"8px 12px",fontSize:13,color:C.muted,marginBottom:10,fontStyle:"italic" }}>📝 "{b.notes}"</div>}
+                  {status==="confirmado" && <button onClick={()=>update(b.id,"a decorrer")} style={{ ...iBtn(true),width:"100%",textAlign:"center",padding:"10px 0",background:C.amber }}>▶ Iniciar serviço</button>}
+                  {status==="a decorrer" && <button onClick={()=>update(b.id,"concluido")}  style={{ ...iBtn(false),width:"100%",textAlign:"center",padding:"10px 0" }}>✓ Concluir serviço</button>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   CUIDADOR: PEDIDOS (quote flow)
+───────────────────────────────────────────── */
+function CuidadorPedidos({ user, bookings, setBookings }) {
+  const [quoteOpen, setQuoteOpen] = useState(null); // booking id
+  const [qForm, setQForm]         = useState({ price:"", notes:"", visit_date:"", visit_time:"" });
+
+  const mine = bookings.filter(b => b.caregiver_id===user.id && ["pendente","orçamento_enviado","rejeitado"].includes(b.status));
+  const update = (id, fields) => setBookings(bs => bs.map(b => b.id===id ? {...b, ...fields} : b));
+
+  const sendQuote = (b) => {
+    if (!qForm.price) return;
+    update(b.id, {
+      status: "orçamento_enviado",
+      quote_price: parseFloat(qForm.price),
+      quote_notes: qForm.notes,
+      quote_date:  qForm.visit_date || b.date,
+      quote_time:  qForm.visit_time || b.time,
+    });
+    setQuoteOpen(null);
+    setQForm({ price:"", notes:"", visit_date:"", visit_time:"" });
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+      <div>
+        <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>📩 Pedidos</h2>
+        <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>Analisa cada pedido e envia um orçamento ao dono</p>
+      </div>
+
+      {mine.length===0 && (
+        <div style={{ ...card, textAlign:"center", padding:40, color:C.muted }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>📭</div>
+          <div style={{ fontWeight:600 }}>Sem pedidos de momento</div>
+        </div>
+      )}
+
+      {["pendente","orçamento_enviado","rejeitado"].map(status => {
+        const list = mine.filter(b => b.status===status);
+        if (!list.length) return null;
+        const labels = { "pendente":"🔵 Novos pedidos", "orçamento_enviado":"🟣 Orçamento enviado — aguarda dono", "rejeitado":"❌ Rejeitados" };
+        return (
+          <div key={status}>
+            <div style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:".06em", marginBottom:8 }}>{labels[status]} ({list.length})</div>
+            {list.map(b => {
+              const owner = USERS.find(u => u.id===b.owner_id);
+              const pet   = PETS.find(p => p.id===b.pet_id);
+              const isOpen = quoteOpen===b.id;
+              return (
+                <div key={b.id} style={{ ...card, marginBottom:10, border: status==="pendente" ? `2px solid ${C.mint}` : `1px solid ${C.border}` }}>
+                  {/* header */}
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                    <div style={{ width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.mint},${C.moss})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{owner?.avatar}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontWeight:700, fontSize:14 }}>{owner?.name}</div>
+                      <div style={{ color:C.muted, fontSize:12 }}>📞 {owner?.phone}</div>
+                    </div>
+                    <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
+                  </div>
+
+                  {/* request details */}
+                  <div style={{ background:C.pale, borderRadius:12, padding:12, marginBottom:10 }}>
+                    <div style={{ fontSize:11, color:C.muted, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Pedido do dono</div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                      {[["Animal",`${pet?.species} ${pet?.name}`],["Serviço",b.service],["Data pedida",`${b.date}`],["Hora pedida",b.time]].map(([k,v])=>(
+                        <div key={k}><div style={{ fontSize:10,color:C.muted,fontWeight:700,textTransform:"uppercase" }}>{k}</div><div style={{ fontWeight:600,fontSize:13,marginTop:2 }}>{v}</div></div>
+                      ))}
+                    </div>
+                    {b.notes && <div style={{ marginTop:8, fontSize:13, color:C.muted, fontStyle:"italic" }}>📝 "{b.notes}"</div>}
+                  </div>
+
+                  {/* sent quote summary */}
+                  {b.quote_price && (
+                    <div style={{ background:"#ede8fc", borderRadius:12, padding:12, marginBottom:10, border:"1px solid #c8b8f8" }}>
+                      <div style={{ fontSize:11, color:C.purple, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Orçamento enviado</div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                        {[["Valor proposto",`${b.quote_price}€`],["Data proposta",`${b.quote_date||b.date} ${b.quote_time||b.time}`]].map(([k,v])=>(
+                          <div key={k}><div style={{ fontSize:10,color:C.purple,fontWeight:700,textTransform:"uppercase" }}>{k}</div><div style={{ fontWeight:700,fontSize:14,marginTop:2,color:C.purple }}>{v}</div></div>
+                        ))}
+                      </div>
+                      {b.quote_notes && <div style={{ marginTop:8, fontSize:13, color:"#6c5ce7", fontStyle:"italic" }}>📝 "{b.quote_notes}"</div>}
+                    </div>
+                  )}
+
+                  {/* QUOTE FORM */}
+                  {status==="pendente" && (
+                    isOpen ? (
+                      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:C.forest }}>💶 Enviar orçamento</div>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                          <div>
+                            <label style={LBL}>Valor (€) *</label>
+                            <input style={INPUT} type="number" placeholder="ex: 25" value={qForm.price} onChange={e=>setQForm(f=>({...f,price:e.target.value}))}/>
+                          </div>
+                          <div>
+                            <label style={LBL}>Data confirmada</label>
+                            <input style={INPUT} type="date" value={qForm.visit_date} onChange={e=>setQForm(f=>({...f,visit_date:e.target.value}))}/>
+                          </div>
+                          <div>
+                            <label style={LBL}>Hora confirmada</label>
+                            <input style={INPUT} type="time" value={qForm.visit_time} onChange={e=>setQForm(f=>({...f,visit_time:e.target.value}))}/>
+                          </div>
+                          <div>
+                            <label style={LBL}>Notas ao dono</label>
+                            <input style={INPUT} placeholder="ex: Trazer ração" value={qForm.notes} onChange={e=>setQForm(f=>({...f,notes:e.target.value}))}/>
+                          </div>
+                        </div>
+                        <div style={{ display:"flex", gap:8 }}>
+                          <button onClick={()=>sendQuote(b)} style={{ ...iBtn(true), flex:1, textAlign:"center", padding:"11px 0", opacity:!qForm.price?.5:1 }}>📤 Enviar orçamento</button>
+                          <button onClick={()=>{setQuoteOpen(null);setQForm({price:"",notes:"",visit_date:"",visit_time:""}); }} style={{ ...iBtn(false), padding:"11px 16px" }}>Cancelar</button>
+                        </div>
+                        <button onClick={()=>{setQuoteOpen(null); update(b.id,{status:"rejeitado"}); }} style={{ ...iBtn(true), background:C.red, width:"100%", textAlign:"center", padding:"10px 0" }}>❌ Recusar pedido</button>
+                      </div>
+                    ) : (
+                      <div style={{ display:"flex", gap:8 }}>
+                        <button onClick={()=>{ setQuoteOpen(b.id); setQForm({price:String(b.price),notes:"",visit_date:b.date,visit_time:b.time}); }} style={{ ...iBtn(true), flex:1, textAlign:"center", padding:"11px 0" }}>💶 Enviar orçamento</button>
+                        <button onClick={()=>update(b.id,{status:"rejeitado"})} style={{ ...iBtn(true), background:C.red, padding:"11px 14px" }}>❌</button>
+                      </div>
+                    )
+                  )}
+
+                  {status==="orçamento_enviado" && (
+                    <div style={{ display:"flex", alignItems:"center", gap:8, background:"#f8f7ff", borderRadius:10, padding:"10px 14px", fontSize:13, color:C.purple }}>
+                      <span>⏳</span> A aguardar confirmação do dono...
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })}
@@ -706,11 +871,11 @@ export default function App() {
     pets:       <PetsScreen      ownerPets={ownerPets}/>,
     caregivers: <CaregiversScreen user={user} ownerPets={ownerPets} bookings={bookings} setBookings={setBookings}/>,
     alerts:     <AlertsScreen    alerts={alerts} setAlerts={setAlerts}/>,
-    bookings:   <DonoBookingsScreen user={user} bookings={bookings}/>,
+    bookings:   <DonoBookingsScreen user={user} bookings={bookings} setBookings={setBookings}/>,
   } : {
     dashboard: <CuidadorDashboard user={user} profile={cgProfile} bookings={bookings} setTab={setTab}/>,
-    requests:  <CuidadorRequests  user={user} bookings={bookings} setBookings={setBookings} scheduleOnly={false}/>,
-    schedule:  <CuidadorRequests  user={user} bookings={bookings} setBookings={setBookings} scheduleOnly={true}/>,
+    requests:  <CuidadorPedidos   user={user} bookings={bookings} setBookings={setBookings}/>,
+    schedule:  <CuidadorAgenda    user={user} bookings={bookings} setBookings={setBookings}/>,
     alerts:    <AlertsScreen      alerts={alerts} setAlerts={setAlerts}/>,
     profile:   <CuidadorProfile   user={user} profile={cgProfile}/>,
   };

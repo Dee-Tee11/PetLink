@@ -52,6 +52,7 @@ function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+  const [mode, setMode]         = useState("demo"); // "demo" | "login"
 
   const handle = (em, pw="1234") => {
     setLoading(true); setError("");
@@ -62,48 +63,69 @@ function LoginScreen({ onLogin }) {
   };
 
   const demos = [
-    { label:"Dono — Diogo",    email:"diogo@demo.com",  role:"dono",     emoji:"🐾" },
-    { label:"Dono — Rita",     email:"rita@demo.com",   role:"dono",     emoji:"🐾" },
-    { label:"Cuidadora — Ana", email:"ana@demo.com",    role:"cuidador", emoji:"👩‍🦰" },
-    { label:"Cuidador — Carlos",email:"carlos@demo.com",role:"cuidador", emoji:"👨‍🦳" },
+    { label:"Dono — Diogo",      email:"diogo@demo.com",  role:"dono",     emoji:"🐾", desc:"3 pets · 3 reservas" },
+    { label:"Dono — Rita",       email:"rita@demo.com",   role:"dono",     emoji:"🐾", desc:"2 pets · 2 reservas" },
+    { label:"Cuidadora — Ana",   email:"ana@demo.com",    role:"cuidador", emoji:"👩‍🦰", desc:"Top Cuidador · ⭐ 4.9" },
+    { label:"Cuidador — Carlos", email:"carlos@demo.com", role:"cuidador", emoji:"👨‍🦳", desc:"Treino · ⭐ 4.7" },
   ];
 
   return (
     <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:C.cream, padding:24, fontFamily:"'Segoe UI',system-ui,sans-serif" }}>
-      <div style={{ width:"100%", maxWidth:380 }}>
-        <div style={{ textAlign:"center", marginBottom:36 }}>
+      <div style={{ width:"100%", maxWidth:400 }}>
+
+        {/* Logo */}
+        <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ width:64, height:64, borderRadius:"50% 50% 50% 14%", background:C.forest, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, margin:"0 auto 14px" }}>🐾</div>
           <h1 style={{ margin:0, fontSize:26, fontWeight:800, color:C.forest }}>PetLink</h1>
           <p style={{ color:C.muted, fontSize:14, margin:"6px 0 0" }}>Cuidados e proteção animal</p>
         </div>
 
-        <div style={{ ...card, padding:24, display:"flex", flexDirection:"column", gap:14 }}>
-          <div>
-            <label style={LBL}>Email</label>
-            <input style={INPUT} type="email" placeholder="o teu email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle(email,password)}/>
-          </div>
-          <div>
-            <label style={LBL}>Password</label>
-            <input style={INPUT} type="password" placeholder="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle(email,password)}/>
-          </div>
-          {error && <div style={{ background:C.redBg, color:C.red, borderRadius:10, padding:"9px 14px", fontSize:13, fontWeight:600 }}>⚠️ {error}</div>}
-          <button onClick={()=>handle(email,password)} disabled={loading} style={{ ...iBtn(true), width:"100%", textAlign:"center", padding:"13px 0", fontSize:14, opacity:loading?.7:1 }}>
-            {loading?"A entrar...":"Entrar →"}
-          </button>
+        {/* Toggle Demo / Entrar */}
+        <div style={{ display:"flex", background:"#e4ede7", borderRadius:100, padding:4, marginBottom:20 }}>
+          {[["demo","🎮 Demo"],["login","🔑 Entrar"]].map(([m,l])=>(
+            <button key={m} onClick={()=>{ setMode(m); setError(""); }} style={{ flex:1, background:mode===m?C.white:"transparent", border:"none", borderRadius:100, padding:"9px 0", fontWeight:700, fontSize:13, color:mode===m?C.forest:C.muted, cursor:"pointer", fontFamily:"inherit", boxShadow:mode===m?"0 1px 4px rgba(0,0,0,.10)":"none", transition:"all .18s" }}>{l}</button>
+          ))}
         </div>
 
-        <div style={{ marginTop:20 }}>
-          <p style={{ textAlign:"center", color:C.muted, fontSize:12, marginBottom:12 }}>Contas de demo (password: 1234)</p>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+        {/* DEMO MODE */}
+        {mode==="demo" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <p style={{ textAlign:"center", color:C.muted, fontSize:12, margin:"0 0 4px" }}>Escolhe um perfil para explorar a app</p>
             {demos.map((d,i)=>(
-              <button key={i} onClick={()=>handle(d.email)} style={{ background:d.role==="dono"?C.pale:C.purpleBg, border:`1px solid ${d.role==="dono"?C.border:C.purple+"44"}`, borderRadius:12, padding:"10px 12px", cursor:"pointer", fontFamily:"inherit", textAlign:"left" }}>
-                <div style={{ fontSize:18, marginBottom:4 }}>{d.emoji}</div>
-                <div style={{ fontWeight:700, fontSize:12, color:d.role==="dono"?C.forest:C.purple }}>{d.label}</div>
-                <div style={{ fontSize:11, color:C.muted }}>{d.email}</div>
+              <button key={i} onClick={()=>handle(d.email)}
+                style={{ background:C.white, border:`1.5px solid ${d.role==="dono"?C.border:C.purple+"55"}`, borderRadius:14, padding:"13px 16px", cursor:"pointer", fontFamily:"inherit", textAlign:"left", display:"flex", alignItems:"center", gap:12, transition:"box-shadow .15s" }}
+                onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,.09)"}
+                onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+                <div style={{ width:44, height:44, borderRadius:14, background:d.role==="dono"?C.pale:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>{d.emoji}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:14, color:d.role==="dono"?C.forest:C.purple }}>{d.label}</div>
+                  <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{d.desc}</div>
+                </div>
+                <span style={{ color:C.muted, fontSize:18 }}>›</span>
               </button>
             ))}
+            <p style={{ textAlign:"center", color:C.muted, fontSize:11, marginTop:6 }}>Todos os perfis usam password: <b>1234</b></p>
           </div>
-        </div>
+        )}
+
+        {/* LOGIN MODE */}
+        {mode==="login" && (
+          <div style={{ ...card, padding:24, display:"flex", flexDirection:"column", gap:14 }}>
+            <div>
+              <label style={LBL}>Email</label>
+              <input style={INPUT} type="email" placeholder="o teu email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle(email,password)} autoFocus/>
+            </div>
+            <div>
+              <label style={LBL}>Password</label>
+              <input style={INPUT} type="password" placeholder="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handle(email,password)}/>
+            </div>
+            {error && <div style={{ background:C.redBg, color:C.red, borderRadius:10, padding:"9px 14px", fontSize:13, fontWeight:600 }}>⚠️ {error}</div>}
+            <button onClick={()=>handle(email,password)} disabled={loading} style={{ ...iBtn(true), width:"100%", textAlign:"center", padding:"13px 0", fontSize:14, opacity:loading?.7:1 }}>
+              {loading?"A entrar...":"Entrar →"}
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -334,7 +356,6 @@ function CaregiversScreen({ user, ownerPets, bookings, setBookings }) {
         </div>
       )}
 
-      {/* BOOKING FORM */}
       {showBook ? (
         bookDone ? (
           <div style={{ ...card, textAlign:"center", padding:40, background:"#e8f5ec", border:`2px solid ${C.mint}` }}>
@@ -449,8 +470,6 @@ function DonoBookingsScreen({ user, bookings, setBookings }) {
                     <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
                   </div>
                 </div>
-
-                {/* Quote details for dono to review */}
                 {status==="orçamento_enviado" && b.quote_price && (
                   <>
                     <div style={{ background:"#ede8fc", borderRadius:12, padding:14, marginBottom:12, border:"1px solid #c8b8f8" }}>
@@ -603,7 +622,7 @@ function CuidadorDashboard({ user, profile, bookings, setTab }) {
 }
 
 /* ─────────────────────────────────────────────
-   CUIDADOR: AGENDA (confirmed/active only)
+   CUIDADOR: AGENDA
 ───────────────────────────────────────────── */
 function CuidadorAgenda({ user, bookings, setBookings }) {
   const mine = bookings.filter(b => b.caregiver_id===user.id && ["confirmado","a decorrer"].includes(b.status));
@@ -655,10 +674,10 @@ function CuidadorAgenda({ user, bookings, setBookings }) {
 }
 
 /* ─────────────────────────────────────────────
-   CUIDADOR: PEDIDOS (quote flow)
+   CUIDADOR: PEDIDOS
 ───────────────────────────────────────────── */
 function CuidadorPedidos({ user, bookings, setBookings }) {
-  const [quoteOpen, setQuoteOpen] = useState(null); // booking id
+  const [quoteOpen, setQuoteOpen] = useState(null);
   const [qForm, setQForm]         = useState({ price:"", notes:"", visit_date:"", visit_time:"" });
 
   const mine = bookings.filter(b => b.caregiver_id===user.id && ["pendente","orçamento_enviado","rejeitado"].includes(b.status));
@@ -683,14 +702,12 @@ function CuidadorPedidos({ user, bookings, setBookings }) {
         <h2 style={{ margin:0, fontSize:20, fontWeight:800 }}>📩 Pedidos</h2>
         <p style={{ color:C.muted, fontSize:13, margin:"4px 0 0" }}>Analisa cada pedido e envia um orçamento ao dono</p>
       </div>
-
       {mine.length===0 && (
         <div style={{ ...card, textAlign:"center", padding:40, color:C.muted }}>
           <div style={{ fontSize:40, marginBottom:12 }}>📭</div>
           <div style={{ fontWeight:600 }}>Sem pedidos de momento</div>
         </div>
       )}
-
       {["pendente","orçamento_enviado","rejeitado"].map(status => {
         const list = mine.filter(b => b.status===status);
         if (!list.length) return null;
@@ -704,7 +721,6 @@ function CuidadorPedidos({ user, bookings, setBookings }) {
               const isOpen = quoteOpen===b.id;
               return (
                 <div key={b.id} style={{ ...card, marginBottom:10, border: status==="pendente" ? `2px solid ${C.mint}` : `1px solid ${C.border}` }}>
-                  {/* header */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
                     <div style={{ width:42,height:42,borderRadius:"50%",background:`linear-gradient(135deg,${C.mint},${C.moss})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{owner?.avatar}</div>
                     <div style={{ flex:1 }}>
@@ -713,8 +729,6 @@ function CuidadorPedidos({ user, bookings, setBookings }) {
                     </div>
                     <Badge color={STATUS_COLORS[b.status]?.[0]} bg={STATUS_COLORS[b.status]?.[1]}>{b.status}</Badge>
                   </div>
-
-                  {/* request details */}
                   <div style={{ background:C.pale, borderRadius:12, padding:12, marginBottom:10 }}>
                     <div style={{ fontSize:11, color:C.muted, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Pedido do dono</div>
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
@@ -724,8 +738,6 @@ function CuidadorPedidos({ user, bookings, setBookings }) {
                     </div>
                     {b.notes && <div style={{ marginTop:8, fontSize:13, color:C.muted, fontStyle:"italic" }}>📝 "{b.notes}"</div>}
                   </div>
-
-                  {/* sent quote summary */}
                   {b.quote_price && (
                     <div style={{ background:"#ede8fc", borderRadius:12, padding:12, marginBottom:10, border:"1px solid #c8b8f8" }}>
                       <div style={{ fontSize:11, color:C.purple, fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>Orçamento enviado</div>
@@ -737,29 +749,15 @@ function CuidadorPedidos({ user, bookings, setBookings }) {
                       {b.quote_notes && <div style={{ marginTop:8, fontSize:13, color:"#6c5ce7", fontStyle:"italic" }}>📝 "{b.quote_notes}"</div>}
                     </div>
                   )}
-
-                  {/* QUOTE FORM */}
                   {status==="pendente" && (
                     isOpen ? (
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         <div style={{ fontSize:13, fontWeight:700, color:C.forest }}>💶 Enviar orçamento</div>
                         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                          <div>
-                            <label style={LBL}>Valor (€) *</label>
-                            <input style={INPUT} type="number" placeholder="ex: 25" value={qForm.price} onChange={e=>setQForm(f=>({...f,price:e.target.value}))}/>
-                          </div>
-                          <div>
-                            <label style={LBL}>Data confirmada</label>
-                            <input style={INPUT} type="date" value={qForm.visit_date} onChange={e=>setQForm(f=>({...f,visit_date:e.target.value}))}/>
-                          </div>
-                          <div>
-                            <label style={LBL}>Hora confirmada</label>
-                            <input style={INPUT} type="time" value={qForm.visit_time} onChange={e=>setQForm(f=>({...f,visit_time:e.target.value}))}/>
-                          </div>
-                          <div>
-                            <label style={LBL}>Notas ao dono</label>
-                            <input style={INPUT} placeholder="ex: Trazer ração" value={qForm.notes} onChange={e=>setQForm(f=>({...f,notes:e.target.value}))}/>
-                          </div>
+                          <div><label style={LBL}>Valor (€) *</label><input style={INPUT} type="number" placeholder="ex: 25" value={qForm.price} onChange={e=>setQForm(f=>({...f,price:e.target.value}))}/></div>
+                          <div><label style={LBL}>Data confirmada</label><input style={INPUT} type="date" value={qForm.visit_date} onChange={e=>setQForm(f=>({...f,visit_date:e.target.value}))}/></div>
+                          <div><label style={LBL}>Hora confirmada</label><input style={INPUT} type="time" value={qForm.visit_time} onChange={e=>setQForm(f=>({...f,visit_time:e.target.value}))}/></div>
+                          <div><label style={LBL}>Notas ao dono</label><input style={INPUT} placeholder="ex: Trazer ração" value={qForm.notes} onChange={e=>setQForm(f=>({...f,notes:e.target.value}))}/></div>
                         </div>
                         <div style={{ display:"flex", gap:8 }}>
                           <button onClick={()=>sendQuote(b)} style={{ ...iBtn(true), flex:1, textAlign:"center", padding:"11px 0", opacity:!qForm.price?.5:1 }}>📤 Enviar orçamento</button>
@@ -774,7 +772,6 @@ function CuidadorPedidos({ user, bookings, setBookings }) {
                       </div>
                     )
                   )}
-
                   {status==="orçamento_enviado" && (
                     <div style={{ display:"flex", alignItems:"center", gap:8, background:"#f8f7ff", borderRadius:10, padding:"10px 14px", fontSize:13, color:C.purple }}>
                       <span>⏳</span> A aguardar confirmação do dono...
@@ -887,7 +884,7 @@ export default function App() {
         <span style={{ fontWeight:800,fontSize:18,color:C.forest }}>PetLink</span>
       </div>
       <div style={{ marginBottom:8,padding:"4px 12px" }}>
-        <span style={{ fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:".08em",background:isDono?C.pale:C.purpleBg,color:isDono?C.forest:C.purple,borderRadius:100,padding:"3px 10px" }}>{isDono?"🐾 Dono":"🤝 Cuidador"}</span>
+        <span style={{ fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",background:isDono?C.pale:C.purpleBg,color:isDono?C.forest:C.purple,borderRadius:100,padding:"3px 10px" }}>{isDono?"🐾 Dono":"🤝 Cuidador"}</span>
       </div>
       {TABS.map(t=>(
         <button key={t.id} onClick={()=>setTab(t.id)} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:tab===t.id?C.pale:"transparent",color:tab===t.id?C.forest:"#6a8a72",border:"none",fontWeight:tab===t.id?700:500,fontSize:14,cursor:"pointer",fontFamily:"inherit",textAlign:"left",width:"100%" }}>

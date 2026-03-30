@@ -201,7 +201,26 @@ function AuthScreen({onLogin,onRegister}) {
           <button onClick={submit} disabled={loading} style={{...css.btn(true),width:"100%",padding:"14px 0",fontSize:15,opacity:loading?.65:1}}>
             {loading?"A processar…":mode==="login"?"Entrar →":"Criar conta →"}
           </button>
-          {mode==="login"&&<p style={{textAlign:"center",color:T.muted,fontSize:12,margin:0}}>Demo: <b>diogo@demo.com</b> · password <b>1234</b></p>}
+          {mode==="login"&&<p style={{textAlign:"center",color:T.muted,fontSize:12,margin:0}}>Demo: <b>diogo@demo.com</b> · password <b>123456</b></p>}
+          {mode==="login"&&<div style={{marginTop:20,borderTop:`1px solid ${T.border}`,paddingTop:20}}>
+            <label style={{...css.label,textAlign:"center"}}>Acesso Rápido (Demo)</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:10}}>
+              {[
+                { n:"Rita", e:"rita@demo.com", p:"123456", r:"Dono", i:"👩‍🦰" },
+                { n:"Diogo", e:"diogo@demo.com", p:"123456", r:"Dono", i:"👨‍💻" },
+                { n:"Carlos", e:"carlos@demo.com", p:"123456", r:"Cuidador", i:"🤝" },
+                { n:"Ana", e:"ana@demo.com", p:"123456", r:"Cuidador", i:"🤝" }
+              ].map(d=>(
+                <button key={d.e} onClick={()=>{setEmail(d.e);setPw(d.p);}} style={{background:T.white,border:`1px solid ${T.border}`,borderRadius:12,padding:10,cursor:"pointer",fontFamily:FONT,textAlign:"left",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}} onMouseOver={e=>e.currentTarget.style.borderColor=T.forest} onMouseOut={e=>e.currentTarget.style.borderColor=T.border}>
+                  <span style={{fontSize:20}}>{d.i}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,color:T.forest,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.n}</div>
+                    <div style={{fontSize:10,color:T.muted}}>{d.r}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>}
         </div>
       </div>
     </div>
@@ -241,7 +260,7 @@ function Onboarding({user,onDone}) {
   const finish=async()=>{
     setSaving(true);
     try {
-      await updateDoc(doc(db,"users",String(user.id)),{phone,location,bio,photoURL:photoURL||null,onboarded:true});
+      await updateDoc(doc(db,"users",user.id),{phone,location,bio,photoURL:photoURL||null,onboarded:true});
       if(isDono&&pName.trim()) {
         await addDoc(collection(db,"pets"),{owner_id:user.id,name:pName.trim(),species:pSpecies,breed:pBreed||"—",age:parseInt(pAge)||0,weight:pWeight||"—",color:PET_BG[Math.floor(Math.random()*PET_BG.length)],status:"Em casa",vaccines:[],nextVet:"—",microchip:"—",notes:pNotes,photoURL:pPhoto||null});
       }
@@ -489,7 +508,7 @@ function CaregiversScreen({user,ownerPets,onAddBooking,appData}) {
   const cgP=sel?caregiverProfiles.find(c=>c.user_id===sel):null;
   const cgU=sel?users.find(u=>u.id===sel):null;
   const cgRev=sel?reviews.filter(r=>r.caregiver_id===sel):[];
-  const book=async()=>{if(!bf.pet_id||!bf.service||!bf.date||!bf.time)return;setSaving(true);await onAddBooking({owner_id:user.id,caregiver_id:sel,pet_id:parseInt(bf.pet_id),service:bf.service,date:bf.date,time:bf.time,duration:1,status:"pendente",price:cgP.price_per_hour,notes:bf.notes,created_at:new Date().toISOString().split("T")[0]});setSaving(false);setBookDone(true);setTimeout(()=>{setBookDone(false);setShowBook(false);setBf({pet_id:"",service:"",date:"",time:"",notes:""});},2200);};
+  const book=async()=>{if(!bf.pet_id||!bf.service||!bf.date||!bf.time)return;setSaving(true);await onAddBooking({owner_id:user.id,caregiver_id:sel,pet_id:bf.pet_id,service:bf.service,date:bf.date,time:bf.time,duration:1,status:"pendente",price:cgP.price_per_hour,notes:bf.notes,created_at:new Date().toISOString().split("T")[0]});setSaving(false);setBookDone(true);setTimeout(()=>{setBookDone(false);setShowBook(false);setBf({pet_id:"",service:"",date:"",time:"",notes:""});},2200);};
   if(cgP&&cgU) return (
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       <Back onClick={()=>{setSel(null);setShowBook(false);setBookDone(false);}}/>
@@ -746,7 +765,7 @@ export default function App() {
       if(fbUser){
         const q=query(collection(db,"users"),where("uid","==",fbUser.uid));
         const snap=await getDocs(q);
-        if(!snap.empty){const raw=snap.docs[0].data();const data={...raw,id:raw.id||snap.docs[0].id};setUserProfile(data);setNeedsOnboarding(!data.onboarded);}
+        if(!snap.empty){const raw=snap.docs[0].data();const data={...raw,id:snap.docs[0].id};setUserProfile(data);setNeedsOnboarding(!data.onboarded);}
       } else {setUserProfile(null);setNeedsOnboarding(false);}
       setAuthLoading(false);
     });
@@ -755,9 +774,9 @@ export default function App() {
   const loadData=useCallback(async()=>{
     const [uS,pS,cS,rS]=await Promise.all([getDocs(collection(db,"users")),getDocs(collection(db,"pets")),getDocs(collection(db,"caregiver_profiles")),getDocs(collection(db,"reviews"))]);
     setAppData({
-      users:uS.docs.map(d=>({...d.data(),id:isNaN(d.id)?d.id:parseInt(d.id)})),
+      users:uS.docs.map(d=>({...d.data(),id:d.id})),
       pets:pS.docs.map(d=>({id:d.id,...d.data()})),
-      caregiverProfiles:cS.docs.map(d=>({...d.data(),user_id:isNaN(d.id)?d.id:parseInt(d.id)})),
+      caregiverProfiles:cS.docs.map(d=>({...d.data(),user_id:d.id})),
       reviews:rS.docs.map(d=>({id:d.id,...d.data()})),
     });
   },[]);
@@ -768,7 +787,8 @@ export default function App() {
     if(!userProfile) return;
     const u1=onSnapshot(collection(db,"bookings"),s=>setBookings(s.docs.map(d=>({id:d.id,...d.data()}))));
     const u2=onSnapshot(collection(db,"alerts"),s=>setAlerts(s.docs.map(d=>({id:d.id,...d.data()}))));
-    return()=>{u1();u2();};
+    const u3=onSnapshot(collection(db,"pets"),s=>setAppData(prev=>({...prev,pets:s.docs.map(d=>({id:d.id,...d.data()}))})));
+    return()=>{u1();u2();u3();};
   },[userProfile?.id]);
 
   const handleLogin=(email,pw)=>signInWithEmailAndPassword(auth,email,pw);
@@ -783,7 +803,7 @@ export default function App() {
   const handleOnboardDone=async()=>{
     const q=query(collection(db,"users"),where("uid","==",auth.currentUser?.uid));
     const snap=await getDocs(q);
-    if(!snap.empty){const raw=snap.docs[0].data();setUserProfile({...raw,id:raw.id||snap.docs[0].id});}
+    if(!snap.empty){const raw=snap.docs[0].data();setUserProfile({...raw,id:snap.docs[0].id});}
     setNeedsOnboarding(false);loadData();
   };
   const handleUpdatePhoto=async(url)=>{

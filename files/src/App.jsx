@@ -177,6 +177,7 @@ export default function App() {
           <span style={{ fontWeight: 700, fontSize: 16, color: "var(--forest)", fontFamily: "var(--font-fraunces)" }}>PetLink</span>
         </div>
         <Avatar name={userProfile.name} photoURL={userProfile.photoURL} size={32} />
+      </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px 16px" }}>{screens[tab]}</div>
       <div style={{ display: "flex", background: "var(--white)", borderTop: `1px solid var(--border)`, padding: "6px 0 env(safe-area-inset-bottom,6px)", overflowX: "auto" }}>
         {TABS.map(t => (

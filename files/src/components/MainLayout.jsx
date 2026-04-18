@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogoIconDark } from '../pages/AuthPage';
+import EditProfilePage from '../pages/EditProfilePage';
+import AccountSettingsPage from '../pages/AccountSettingsPage';
 
-export function UserMenu({ displayName, email, onLogout }) {
+export function UserMenu({ displayName, email, onLogout, onEditProfile, onAccountSettings }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -29,8 +31,12 @@ export function UserMenu({ displayName, email, onLogout }) {
             <strong>{displayName || 'User'}</strong>
             <span>{email}</span>
           </div>
-          <button className="user-dropdown-item">⚙️ Account settings</button>
-          <button className="user-dropdown-item">👤 Edit profile</button>
+          <button className="user-dropdown-item" onClick={() => { setOpen(false); onAccountSettings(); }}>
+            ⚙️ Account settings
+          </button>
+          <button className="user-dropdown-item" onClick={() => { setOpen(false); onEditProfile(); }}>
+            👤 Edit profile
+          </button>
           <button className="user-dropdown-item danger" onClick={onLogout}>
             ← Sign out
           </button>
@@ -42,7 +48,10 @@ export function UserMenu({ displayName, email, onLogout }) {
 
 export default function MainLayout({ children, navCenter }) {
   const { userProfile, logout } = useAuth();
-  
+
+  const [showEdit,     setShowEdit]     = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
   const isOwner    = userProfile?.profileTypes?.includes('owner');
   const isProvider = userProfile?.profileTypes?.includes('provider');
 
@@ -52,31 +61,36 @@ export default function MainLayout({ children, navCenter }) {
 
   return (
     <div className="dashboard-layout">
-      {/* ── Nav ── */}
+      {/* Modals */}
+      {showEdit     && <EditProfilePage     onClose={() => setShowEdit(false)} />}
+      {showSettings && <AccountSettingsPage onClose={() => setShowSettings(false)} />}
+
+      {/* Nav */}
       <nav className="dashboard-nav">
-        <div className="nav-logo">
-          <LogoIconDark size={26} />
-          <span>PetLink</span>
+        <div className="nav-inner">
+          <div className="nav-logo">
+            <LogoIconDark size={26} />
+            <span>PetLink</span>
+          </div>
+
+          <div style={{ display:'flex', gap:8, marginLeft:16 }}>
+            {isOwner    && <span className="tag">🐾 Pet Owner</span>}
+            {isProvider && <span className="tag" style={{ borderColor:'var(--sky)', color:'var(--sky)' }}>💼 Provider</span>}
+          </div>
+
+          <div className="nav-spacer" />
+          {navCenter}
+
+          <UserMenu
+            displayName={userProfile?.displayName}
+            email={userProfile?.email}
+            onLogout={handleLogout}
+            onEditProfile={() => setShowEdit(true)}
+            onAccountSettings={() => setShowSettings(true)}
+          />
         </div>
-
-        {/* Profile badges */}
-        <div style={{ display:'flex', gap:8, marginLeft:16 }}>
-          {isOwner    && <span className="tag">🐾 Pet Owner</span>}
-          {isProvider && <span className="tag" style={{ borderColor:'var(--accent)', color:'var(--accent)' }}>💼 Provider</span>}
-        </div>
-
-        <div className="nav-spacer" />
-
-        {navCenter}
-
-        <UserMenu
-          displayName={userProfile?.displayName}
-          email={userProfile?.email}
-          onLogout={handleLogout}
-        />
       </nav>
 
-      {/* ── Main content ── */}
       <main className="dashboard-main">
         {children}
       </main>

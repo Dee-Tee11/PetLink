@@ -1,51 +1,26 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/MainLayout';
+import PetSection from '../components/PetSection';
 
-/* ── Species emoji helper ── */
-const speciesEmoji = (s) =>
-  ({ dog:'🐕', cat:'🐈', rabbit:'🐇', bird:'🐦', fish:'🐟', other:'🐾' }[s] ?? '🐾');
-
-/* ── Sample services ── */
 const BROWSE_SERVICES = [
-  { icon:'✂️',  color:'var(--pink-soft)',   title:'Grooming',     desc:'Full grooming, baths, nail trims & styling.',      badge:'Popular',  badgeClass:'badge-pink'   },
-  { icon:'🦮',  color:'var(--green-soft)',  title:'Dog Walking',  desc:'Daily or on-demand walks with GPS tracking.',      badge:'Daily',    badgeClass:'badge-green'  },
-  { icon:'🏠',  color:'var(--sky-soft)',    title:'Pet Sitting',  desc:"In-home care while you're away.",                  badge:'Flexible', badgeClass:'badge-blue'   },
-  { icon:'🩺',  color:'var(--yellow-soft)', title:'Vet Visits',   desc:'Vaccinations, check-ups & health advice.',         badge:'Trusted',  badgeClass:'badge-yellow' },
-  { icon:'🎓',  color:'var(--green-soft)',  title:'Training',     desc:'Obedience, socialisation & trick training.',       badge:'New',      badgeClass:'badge-green'  },
-  { icon:'🚿',  color:'var(--sky-soft)',    title:'Bath & Brush', desc:'Quick refresh baths between grooming sessions.',   badge:'Quick',    badgeClass:'badge-blue'   },
+  { icon:'✂️',  color:'var(--pink-soft)',    title:'Grooming',     desc:'Full grooming, baths, nail trims & styling.',    badge:'Popular',  badgeClass:'badge-pink'   },
+  { icon:'🦮',  color:'var(--green-soft)',   title:'Dog Walking',  desc:'Daily or on-demand walks with GPS tracking.',    badge:'Daily',    badgeClass:'badge-green'  },
+  { icon:'🏠',  color:'var(--sky-soft)',     title:'Pet Sitting',  desc:"In-home care while you're away.",                badge:'Flexible', badgeClass:'badge-blue'   },
+  { icon:'🩺',  color:'var(--yellow-soft)',  title:'Vet Visits',   desc:'Vaccinations, check-ups & health advice.',       badge:'Trusted',  badgeClass:'badge-yellow' },
+  { icon:'🎓',  color:'var(--green-soft)',   title:'Training',     desc:'Obedience, socialisation & trick training.',     badge:'New',      badgeClass:'badge-green'  },
+  { icon:'🚿',  color:'var(--sky-soft)',     title:'Bath & Brush', desc:'Quick refresh baths between grooming sessions.', badge:'Quick',    badgeClass:'badge-blue'   },
 ];
 
-/* ── Owner view ── */
 function OwnerView({ pets, displayName }) {
   const firstName = displayName?.split(' ')[0] || 'there';
-
   return (
     <>
       <div className="dashboard-welcome">
         <h1>Hey, {firstName} 👋</h1>
         <p>Welcome to your PetLink dashboard. Find the best care for your furry family.</p>
       </div>
-
-      <div className="section">
-        <h2 className="section-title">My Pets</h2>
-        <p className="section-sub">Your pet profiles — providers will see this when you book.</p>
-        <div className="pets-grid">
-          {pets.map(pet => (
-            <div className="pet-card" key={pet.id}>
-              <div className="pet-card-emoji">{speciesEmoji(pet.species)}</div>
-              <h3>{pet.name}</h3>
-              <p>{pet.breed || pet.species}{pet.age != null ? `, ${pet.age} yr${pet.age !== 1 ? 's' : ''}` : ''}</p>
-              <span className="tag" style={{ marginTop:4 }}>{pet.species}</span>
-            </div>
-          ))}
-          <div className="pet-card pet-card-add" onClick={() => alert('Coming soon: add a pet from dashboard')}>
-            <div style={{ fontSize:28 }}>+</div>
-            <p style={{ fontSize:14, fontWeight:600 }}>Add a pet</p>
-          </div>
-        </div>
-      </div>
-
+      <PetSection pets={pets} />
       <div className="section">
         <h2 className="section-title">Explore Services</h2>
         <p className="section-sub">Find the right professionals for your pets.</p>
@@ -64,17 +39,14 @@ function OwnerView({ pets, displayName }) {
   );
 }
 
-/* ── Provider view ── */
 function ProviderView({ displayName }) {
   const firstName = displayName?.split(' ')[0] || 'there';
-
   return (
     <>
       <div className="dashboard-welcome">
         <h1>Your Business, {firstName} 🚀</h1>
         <p>Manage your services and grow your pet care business.</p>
       </div>
-
       <div className="stats-row">
         {[
           { label:'Bookings this month', value:'0', change:'—' },
@@ -89,23 +61,19 @@ function ProviderView({ displayName }) {
           </div>
         ))}
       </div>
-
       <div className="section">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
           <h2 className="section-title" style={{ marginBottom:0 }}>My Services</h2>
-          <button className="btn btn-primary btn-sm" onClick={() => alert('Coming soon: add a service')}>
-            + Add Service
-          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => alert('Coming soon')}>+ Add Service</button>
         </div>
         <p className="section-sub">Services you offer to pet owners.</p>
         <div className="empty-state">
           <span className="empty-state-icon">🛎️</span>
           <h3>No services yet</h3>
-          <p>Add the services you offer — grooming, walking, training and more — so pet owners can find and book you.</p>
+          <p>Add the services you offer so pet owners can find and book you.</p>
           <button className="btn btn-primary" style={{ marginTop:4 }} onClick={() => alert('Coming soon')}>Add your first service</button>
         </div>
       </div>
-
       <div className="section">
         <h2 className="section-title">Upcoming Bookings</h2>
         <p className="section-sub">Your scheduled appointments.</p>
@@ -119,31 +87,17 @@ function ProviderView({ displayName }) {
   );
 }
 
-/* ── Main Dashboard ── */
 export default function DashboardPage() {
   const { userProfile } = useAuth();
-
   const isOwner    = userProfile?.profileTypes?.includes('owner');
   const isProvider = userProfile?.profileTypes?.includes('provider');
   const isBoth     = isOwner && isProvider;
-
-  const defaultView = isOwner ? 'owner' : 'provider';
-  const [activeView, setActiveView] = useState(defaultView);
+  const [activeView, setActiveView] = useState(isOwner ? 'owner' : 'provider');
 
   const navCenter = isBoth ? (
     <div className="profile-switcher">
-      <button
-        className={`switcher-btn ${activeView === 'owner' ? 'active' : ''}`}
-        onClick={() => setActiveView('owner')}
-      >
-        🐾 Pet Owner
-      </button>
-      <button
-        className={`switcher-btn ${activeView === 'provider' ? 'active' : ''}`}
-        onClick={() => setActiveView('provider')}
-      >
-        💼 Provider
-      </button>
+      <button className={`switcher-btn ${activeView === 'owner' ? 'active' : ''}`} onClick={() => setActiveView('owner')}>🐾 Pet Owner</button>
+      <button className={`switcher-btn ${activeView === 'provider' ? 'active' : ''}`} onClick={() => setActiveView('provider')}>💼 Provider</button>
     </div>
   ) : null;
 

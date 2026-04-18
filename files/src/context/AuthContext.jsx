@@ -4,6 +4,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -19,7 +22,7 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loading,     setLoading]     = useState(true);
 
-  /* ── Firestore helpers ─────────────────────── */
+  /* ── Firestore helpers ── */
   const loadUserProfile = async (uid) => {
     try {
       const snap = await getDoc(doc(db, 'users', uid));
@@ -47,11 +50,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const createInitialProfile = async (uid, email) => {
+  const createInitialProfile = async (uid, email, displayName = '') => {
     const profile = {
       uid,
       email,
-      displayName:        '',
+      displayName,
       profileTypes:       [],
       ownerProfile:       { bio: '', location: '' },
       providerProfile:    { bio: '', services: [], location: '' },
@@ -64,10 +67,7 @@ export function AuthProvider({ children }) {
     return profile;
   };
 
-  /* ── Auth helpers ──────────────────────────── */
-
-  // FIX: signup creates the Firestore profile IMMEDIATELY after Firebase
-  // auth user creation — before onAuthStateChanged even fires.
+  /* ── Auth methods ── */
   const signup = async (email, password) => {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await createInitialProfile(credential.user.uid, email);
@@ -77,23 +77,38 @@ export function AuthProvider({ children }) {
   const login = (email, password) =>
     signInWithEmailAndPassword(auth, email, password);
 
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const credential = await signInWithPopup(auth, provider);
+    const { uid, email, displayName } = credential.user;
+
+    // Check if profile already exists
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) {
+      // New Google user → create profile
+      await createInitialProfile(uid, email, displayName || '');
+    } else {
+      setUserProfile(snap.data());
+    }
+    setCurrentUser(credential.user);
+    return credential;
+  };
+
+  const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+
   const logout = async () => {
     await signOut(auth);
     setCurrentUser(null);
     setUserProfile(null);
   };
 
-  /* ── Auth state listener ───────────────────── */
+  /* ── Auth state listener ── */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const profile = await loadUserProfile(user.uid);
 
         if (!profile) {
-          // FIX: A real new user already has a profile created by signup().
-          // If we get here with no profile it means a stale cached session
-          // exists (e.g. from a previous test) with no Firestore doc.
-          // Sign them out so they go through the proper auth flow.
           console.warn('Stale session — no Firestore profile found. Signing out.');
           await signOut(auth);
           setCurrentUser(null);
@@ -118,6 +133,8 @@ export function AuthProvider({ children }) {
     loading,
     signup,
     login,
+    loginWithGoogle,
+    resetPassword,
     logout,
     loadUserProfile,
     saveUserProfile,

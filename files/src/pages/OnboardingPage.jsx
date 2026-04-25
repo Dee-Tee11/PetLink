@@ -230,11 +230,19 @@ export default function OnboardingPage() {
               ))}
             </div>
 
+            {error && <p className="error-msg" style={{ marginTop:8 }}>{error}</p>}
+
             <div className="onboard-actions">
-              <button className="btn btn-secondary" onClick={back}>← Back</button>
-              <button className="btn btn-primary btn-lg" onClick={next} disabled={!canNext()}>
-                Continue →
-              </button>
+              <button className="btn btn-secondary" onClick={back} disabled={saving}>← Back</button>
+              {profileType === 'provider' ? (
+                <button className="btn btn-primary btn-lg" onClick={finish} disabled={!canNext() || saving}>
+                  {saving ? <span className="spinner" /> : 'Finish →'}
+                </button>
+              ) : (
+                <button className="btn btn-primary btn-lg" onClick={next} disabled={!canNext()}>
+                  Continue →
+                </button>
+              )}
             </div>
           </>
         )}

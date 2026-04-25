@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/MainLayout';
 import PetSection from '../components/PetSection';
+import ServiceSection from '../components/ServiceSection';
 
 const BROWSE_SERVICES = [
   { icon:'✂️',  color:'var(--pink-soft)',    title:'Grooming',     desc:'Full grooming, baths, nail trims & styling.',    badge:'Popular',  badgeClass:'badge-pink'   },
@@ -39,7 +40,7 @@ function OwnerView({ pets, displayName }) {
   );
 }
 
-function ProviderView({ displayName }) {
+function ProviderView({ displayName, services }) {
   const firstName = displayName?.split(' ')[0] || 'there';
   return (
     <>
@@ -61,19 +62,9 @@ function ProviderView({ displayName }) {
           </div>
         ))}
       </div>
-      <div className="section">
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-          <h2 className="section-title" style={{ marginBottom:0 }}>My Services</h2>
-          <button className="btn btn-primary btn-sm" onClick={() => alert('Coming soon')}>+ Add Service</button>
-        </div>
-        <p className="section-sub">Services you offer to pet owners.</p>
-        <div className="empty-state">
-          <span className="empty-state-icon">🛎️</span>
-          <h3>No services yet</h3>
-          <p>Add the services you offer so pet owners can find and book you.</p>
-          <button className="btn btn-primary" style={{ marginTop:4 }} onClick={() => alert('Coming soon')}>Add your first service</button>
-        </div>
-      </div>
+
+      <ServiceSection services={services} />
+
       <div className="section">
         <h2 className="section-title">Upcoming Bookings</h2>
         <p className="section-sub">Your scheduled appointments.</p>
@@ -105,7 +96,7 @@ export default function DashboardPage() {
     <MainLayout navCenter={navCenter}>
       {activeView === 'owner'
         ? <OwnerView pets={userProfile?.pets ?? []} displayName={userProfile?.displayName} />
-        : <ProviderView displayName={userProfile?.displayName} />
+        : <ProviderView displayName={userProfile?.displayName} services={userProfile?.services ?? []} />
       }
     </MainLayout>
   );

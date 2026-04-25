@@ -1,56 +1,57 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
+// ── Service type metadata — mesmas do DashboardPage ─────────────────────────
 const SERVICE_TYPES = [
-  { key: 'grooming',   emoji: '✂️',  label: 'Grooming',     color: 'var(--pink-soft)'   },
-  { key: 'walking',    emoji: '🦮',  label: 'Dog Walking',  color: 'var(--green-soft)'  },
-  { key: 'sitting',    emoji: '🏠',  label: 'Pet Sitting',  color: 'var(--sky-soft)'    },
-  { key: 'vet',        emoji: '🩺',  label: 'Vet Visits',   color: 'var(--yellow-soft)' },
-  { key: 'training',   emoji: '🎓',  label: 'Training',     color: 'var(--green-soft)'  },
-  { key: 'bath',       emoji: '🚿',  label: 'Bath & Brush', color: 'var(--sky-soft)'    },
-  { key: 'boarding',   emoji: '🛏️',  label: 'Boarding',     color: 'var(--yellow-soft)' },
-  { key: 'transport',  emoji: '🚗',  label: 'Transport',    color: 'var(--pink-soft)'   },
-  { key: 'other',      emoji: '🐾',  label: 'Other',        color: 'var(--green-soft)'  },
+  { key: 'grooming',  emoji: '✂️',  label: 'Grooming',     color: 'var(--pink-soft)'   },
+  { key: 'walking',   emoji: '🦮',  label: 'Dog Walking',  color: 'var(--green-soft)'  },
+  { key: 'sitting',   emoji: '🏠',  label: 'Pet Sitting',  color: 'var(--sky-soft)'    },
+  { key: 'vet',       emoji: '🩺',  label: 'Consulta Vet', color: 'var(--yellow-soft)' },
+  { key: 'training',  emoji: '🎓',  label: 'Treino',       color: 'var(--green-soft)'  },
+  { key: 'bath',      emoji: '🚿',  label: 'Bath & Brush', color: 'var(--sky-soft)'    },
+  { key: 'boarding',  emoji: '🛏️',  label: 'Hospedagem',   color: 'var(--yellow-soft)' },
+  { key: 'transport', emoji: '🚗',  label: 'Transporte',   color: 'var(--pink-soft)'   },
+  { key: 'other',     emoji: '🐾',  label: 'Outro',        color: 'var(--green-soft)'  },
 ];
 
 const typeInfo = (key) => SERVICE_TYPES.find(t => t.key === key) ?? SERVICE_TYPES[SERVICE_TYPES.length - 1];
 
-/* ── Add / Edit Service Modal ── */
+// ── Add / Edit Service Modal ─────────────────────────────────────────────────
 function ServiceModal({ service, onClose, onSave, onDelete }) {
   const editing = !!service;
 
-  const [type,        setType]        = useState(service?.type        || 'grooming');
-  const [title,       setTitle]       = useState(service?.title       || '');
-  const [desc,        setDesc]        = useState(service?.desc        || '');
-  const [price,       setPrice]       = useState(service?.price       ?? '');
-  const [unit,        setUnit]        = useState(service?.unit        || 'session');
-  const [duration,    setDuration]    = useState(service?.duration    || '');
-  const [available,   setAvailable]   = useState(service?.available   ?? true);
-  const [error,       setError]       = useState('');
-  const [saving,      setSaving]      = useState(false);
+  const [type,      setType]      = useState(service?.type      || 'grooming');
+  const [title,     setTitle]     = useState(service?.title     || '');
+  const [desc,      setDesc]      = useState(service?.desc      || '');
+  const [price,     setPrice]     = useState(service?.price     ?? '');
+  const [unit,      setUnit]      = useState(service?.unit      || 'session');
+  const [duration,  setDuration]  = useState(service?.duration  || '');
+  const [available, setAvailable] = useState(service?.available ?? true);
+  const [error,     setError]     = useState('');
+  const [saving,    setSaving]    = useState(false);
+
+  const t = typeInfo(type);
 
   const handleSave = async () => {
-    if (!title.trim()) { setError('Give your service a title.'); return; }
+    if (!title.trim()) { setError('Dá um título ao teu serviço.'); return; }
     if (price === '' || isNaN(Number(price)) || Number(price) < 0) {
-      setError('Enter a valid price (0 or more).'); return;
+      setError('Insere um preço válido (0 ou mais).'); return;
     }
     setSaving(true);
     try {
       await onSave({
-        id:        service?.id || Date.now().toString(),
+        id:       service?.id || Date.now().toString(),
         type, title: title.trim(), desc: desc.trim(),
         price: Number(price), unit, duration: duration.trim(),
         available,
       });
       onClose();
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('Algo correu mal. Tenta novamente.');
     } finally {
       setSaving(false);
     }
   };
-
-  const t = typeInfo(type);
 
   return (
     <div style={{
@@ -83,10 +84,10 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
             }}>{t.emoji}</div>
             <div>
               <h2 style={{ fontSize: 20, fontFamily: 'var(--font-display)' }}>
-                {editing ? 'Edit Service' : 'Add Service'}
+                {editing ? 'Editar Serviço' : 'Adicionar Serviço'}
               </h2>
-              <p style={{ fontSize: 13, color: 'var(--text-2)', fontFamily: 'var(--font-body)' }}>
-                {editing ? 'Update the details of your service.' : 'Describe what you offer to pet owners.'}
+              <p style={{ fontSize: 13, color: 'var(--text-2)' }}>
+                {editing ? 'Actualiza os detalhes do teu serviço.' : 'Descreve o que ofereces aos donos de pets.'}
               </p>
             </div>
           </div>
@@ -95,7 +96,7 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
         {/* Body */}
         <div style={{ padding: '24px' }}>
           {/* Type picker */}
-          <label className="label">Category</label>
+          <label className="label">Categoria</label>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             {SERVICE_TYPES.map(s => (
               <button
@@ -111,21 +112,21 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
 
           {/* Title */}
           <div className="field-group">
-            <label className="label">Service title *</label>
+            <label className="label">Título do serviço *</label>
             <input
               className="input-field"
-              placeholder={`e.g. ${t.label} for small dogs`}
+              placeholder={`ex: ${t.label} para cães pequenos`}
               value={title} onChange={e => setTitle(e.target.value)}
             />
           </div>
 
           {/* Description */}
           <div className="field-group">
-            <label className="label">Description</label>
+            <label className="label">Descrição</label>
             <textarea
               className="input-field"
               style={{ minHeight: 80, resize: 'vertical', lineHeight: 1.6 }}
-              placeholder="What's included? Any special conditions, experience, equipment…"
+              placeholder="O que está incluído? Condições, experiência, equipamento…"
               value={desc} onChange={e => setDesc(e.target.value)}
             />
           </div>
@@ -133,30 +134,30 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
           {/* Price + unit + duration */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
             <div className="field-group" style={{ marginBottom: 0 }}>
-              <label className="label">Price (€) *</label>
+              <label className="label">Preço (€) *</label>
               <input
                 className="input-field" type="number" min="0" step="0.5"
-                placeholder="e.g. 15" value={price} onChange={e => setPrice(e.target.value)}
+                placeholder="ex: 15" value={price} onChange={e => setPrice(e.target.value)}
               />
             </div>
             <div className="field-group" style={{ marginBottom: 0 }}>
-              <label className="label">Per</label>
+              <label className="label">Por</label>
               <select
                 className="input-field" value={unit} onChange={e => setUnit(e.target.value)}
                 style={{ cursor: 'pointer' }}
               >
-                <option value="session">Session</option>
-                <option value="hour">Hour</option>
-                <option value="day">Day</option>
-                <option value="night">Night</option>
-                <option value="visit">Visit</option>
+                <option value="session">Sessão</option>
+                <option value="hour">Hora</option>
+                <option value="day">Dia</option>
+                <option value="night">Noite</option>
+                <option value="visit">Visita</option>
                 <option value="km">Km</option>
               </select>
             </div>
             <div className="field-group" style={{ marginBottom: 0 }}>
-              <label className="label">Duration</label>
+              <label className="label">Duração</label>
               <input
-                className="input-field" placeholder="e.g. 1h30"
+                className="input-field" placeholder="ex: 1h30"
                 value={duration} onChange={e => setDuration(e.target.value)}
               />
             </div>
@@ -169,9 +170,9 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
             borderRadius: 'var(--radius-sm)', marginBottom: 16,
           }}>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Available now</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>Disponível agora</div>
               <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
-                Pet owners can see and book this service
+                Donos de pets podem ver e reservar este serviço
               </div>
             </div>
             <button
@@ -201,16 +202,16 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
               <button
                 className="btn btn-secondary"
                 style={{ color: 'var(--danger)', borderColor: 'var(--danger)', flex: '0 0 auto' }}
-                onClick={() => { if (window.confirm('Remove this service?')) onDelete(service.id); }}
+                onClick={() => { if (window.confirm('Remover este serviço?')) onDelete(service.id); }}
               >
-                Remove
+                Remover
               </button>
             )}
             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>
-              Cancel
+              Cancelar
             </button>
             <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleSave} disabled={saving}>
-              {saving ? <span className="spinner" /> : editing ? 'Save changes' : 'Add Service'}
+              {saving ? <span className="spinner" /> : editing ? 'Guardar alterações' : 'Adicionar Serviço'}
             </button>
           </div>
         </div>
@@ -219,7 +220,7 @@ function ServiceModal({ service, onClose, onSave, onDelete }) {
   );
 }
 
-/* ── Service card ── */
+// ── Service card ─────────────────────────────────────────────────────────────
 function ServiceCard({ service, onClick }) {
   const t = typeInfo(service.type);
   return (
@@ -228,24 +229,30 @@ function ServiceCard({ service, onClick }) {
       style={{ position: 'relative', cursor: 'pointer' }}
       onClick={onClick}
     >
-      {/* availability pill */}
+      {/* Availability dot */}
       <div style={{
         position: 'absolute', top: 14, right: 14,
         width: 10, height: 10, borderRadius: '50%',
         background: service.available ? 'var(--success)' : 'var(--text-3)',
         boxShadow: service.available ? '0 0 0 3px rgba(125,191,106,0.2)' : 'none',
-      }} title={service.available ? 'Available' : 'Unavailable'} />
+      }} title={service.available ? 'Disponível' : 'Indisponível'} />
 
       <div className="service-card-icon" style={{ background: t.color }}>
         {t.emoji}
       </div>
       <h3 style={{ paddingRight: 20 }}>{service.title}</h3>
       {service.desc && (
-        <p style={{ WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <p style={{
+          WebkitLineClamp: 2, display: '-webkit-box',
+          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
           {service.desc}
         </p>
       )}
-      <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10 }}>
+      <div style={{
+        marginTop: 'auto', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', paddingTop: 10,
+      }}>
         <span style={{
           fontSize: 16, fontWeight: 700, color: 'var(--text)',
           fontFamily: 'var(--font-display)',
@@ -263,12 +270,12 @@ function ServiceCard({ service, onClick }) {
   );
 }
 
-/* ── Main exported section ── */
+// ── Main exported section ────────────────────────────────────────────────────
 export default function ServiceSection({ services: initialServices }) {
   const { currentUser, saveUserProfile } = useAuth();
-  const [services,  setServices]  = useState(initialServices || []);
-  const [selected,  setSelected]  = useState(null);   // service being edited
-  const [showAdd,   setShowAdd]   = useState(false);
+  const [services, setServices] = useState(initialServices || []);
+  const [selected, setSelected] = useState(null);
+  const [showAdd,  setShowAdd]  = useState(false);
 
   const persist = async (next) => {
     setServices(next);
@@ -309,20 +316,22 @@ export default function ServiceSection({ services: initialServices }) {
 
       <div className="section">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h2 className="section-title" style={{ marginBottom: 0 }}>My Services</h2>
+          <h2 className="section-title" style={{ marginBottom: 0 }}>Os meus Serviços</h2>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-            + Add Service
+            + Adicionar Serviço
           </button>
         </div>
-        <p className="section-sub">Click a service to edit it. The green dot means it's visible to pet owners.</p>
+        <p className="section-sub">
+          Clica num serviço para editar. O ponto verde significa que está visível para clientes.
+        </p>
 
         {services.length === 0 ? (
           <div className="empty-state">
             <span className="empty-state-icon">🛎️</span>
-            <h3>No services yet</h3>
-            <p>Add the services you offer so pet owners can find and book you.</p>
+            <h3>Sem serviços ainda</h3>
+            <p>Adiciona os serviços que ofereces para que os donos de pets te possam encontrar.</p>
             <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-              Add your first service
+              Adicionar o primeiro serviço
             </button>
           </div>
         ) : (
@@ -352,7 +361,7 @@ export default function ServiceSection({ services: initialServices }) {
               }}
             >
               <div style={{ fontSize: 28 }}>+</div>
-              <p style={{ fontSize: 14, fontWeight: 600 }}>Add a service</p>
+              <p style={{ fontSize: 14, fontWeight: 600 }}>Adicionar serviço</p>
             </div>
           </div>
         )}

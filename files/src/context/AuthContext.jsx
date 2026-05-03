@@ -6,6 +6,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -16,6 +18,19 @@ const AuthContext = createContext(null);
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+// Detect environments where popups are unreliable
+const isPopupUnreliable = () => {
+  const ua = navigator.userAgent.toLowerCase();
+  // Mobile browsers, in-app browsers (Instagram, Facebook), Safari on iOS
+  return (
+    /iphone|ipad|ipod/.test(ua) ||
+    /android/.test(ua) ||
+    /instagram|fban|fbav|twitter/.test(ua) ||
+    // Safari on desktop also sometimes blocks popups
+    (/safari/.test(ua) && !/chrome/.test(ua))
+  );
+};
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
@@ -79,13 +94,46 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    const credential = await signInWithPopup(auth, provider);
-    const { uid, email, displayName } = credential.user;
+    // Request profile + email scopes explicitly
+    provider.addScope('profile');
+    provider.addScope('email');
+    // Force account selector even if already signed in
+    provider.setCustomParameters({ prompt: 'select_account' });
 
-    // Check if profile already exists
+    // On mobile / in-app browsers → redirect is more reliable
+    if (isPopupUnreliable()) {
+      // Store flag so we know to handle redirect result on next load
+      sessionStorage.setItem('pendingGoogleRedirect', '1');
+      await signInWithRedirect(auth, provider);
+      return; // page will reload after redirect
+    }
+
+    // Desktop: try popup first
+    try {
+      const credential = await signInWithPopup(auth, provider);
+      await handleGoogleCredential(credential);
+      return credential;
+    } catch (err) {
+      // Popup was blocked or closed — fall back to redirect
+      if (
+        err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/popup-closed-by-user' ||
+        err.code === 'auth/cancelled-popup-request'
+      ) {
+        sessionStorage.setItem('pendingGoogleRedirect', '1');
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      // Any other error — re-throw so the UI can show it
+      throw err;
+    }
+  };
+
+  // Shared logic after any Google credential (popup or redirect)
+  const handleGoogleCredential = async (credential) => {
+    const { uid, email, displayName } = credential.user;
     const snap = await getDoc(doc(db, 'users', uid));
     if (!snap.exists()) {
-      // New Google user → create profile
       await createInitialProfile(uid, email, displayName || '');
     } else {
       setUserProfile(snap.data());
@@ -104,6 +152,24 @@ export function AuthProvider({ children }) {
 
   /* ── Auth state listener ── */
   useEffect(() => {
+    // Handle redirect result FIRST (fires once after Google redirect)
+    const handleRedirect = async () => {
+      if (sessionStorage.getItem('pendingGoogleRedirect')) {
+        sessionStorage.removeItem('pendingGoogleRedirect');
+        try {
+          const result = await getRedirectResult(auth);
+          if (result) {
+            await handleGoogleCredential(result);
+          }
+        } catch (err) {
+          console.error('Google redirect error:', err);
+          // The onAuthStateChanged below will still fire, so UI recovers
+        }
+      }
+    };
+
+    handleRedirect();
+
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const profile = await loadUserProfile(user.uid);
@@ -124,6 +190,7 @@ export function AuthProvider({ children }) {
       }
       setLoading(false);
     });
+
     return unsub;
   }, []);
 

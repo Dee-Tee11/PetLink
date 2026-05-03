@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  collection, query, where, getDocs, doc, updateDoc, orderBy,
+  collection, query, where, getDocs, doc, updateDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import ChatModal from './ChatModal';
 
 const STATUS_CONFIG = {
   pendente:    { label: 'Pendente',    bg: 'var(--yellow-soft)', color: '#7A6A1A' },
@@ -17,7 +18,7 @@ const SERVICE_EMOJI = {
   training: '🎓', bath: '🚿', boarding: '🛏️', transport: '🚗', other: '🐾',
 };
 
-function BookingCard({ booking, onCancel, role }) {
+function BookingCard({ booking, onStatusChange, role, onOpenChat }) {
   const status = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pendente;
   const emoji  = SERVICE_EMOJI[booking.service_type] ?? '🐾';
 
@@ -27,26 +28,44 @@ function BookingCard({ booking, onCancel, role }) {
     return `${day}/${m}/${y}`;
   };
 
+  const isConfirmed = booking.status === 'confirmado';
+
   return (
-    <div style={{
-      background: 'var(--white)', border: '1.5px solid var(--border-mid)',
-      borderRadius: 'var(--radius-lg)', padding: '18px 20px',
-      display: 'flex', gap: 16, alignItems: 'flex-start',
-      transition: 'box-shadow var(--ease)',
-    }}
+    <div
+      style={{
+        background: 'var(--white)',
+        border: `1.5px solid ${isConfirmed ? 'rgba(163,191,138,0.5)' : 'var(--border-mid)'}`,
+        borderRadius: 'var(--radius-lg)', padding: '18px 20px',
+        display: 'flex', gap: 16, alignItems: 'flex-start',
+        transition: 'box-shadow var(--ease)',
+        position: 'relative',
+      }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
     >
+      {/* Confirmed accent line */}
+      {isConfirmed && (
+        <div style={{
+          position: 'absolute', left: 0, top: 12, bottom: 12,
+          width: 3, borderRadius: '0 3px 3px 0',
+          background: 'var(--primary)',
+        }} />
+      )}
+
       {/* Icon */}
       <div style={{
         width: 48, height: 48, borderRadius: 'var(--radius-sm)',
-        background: 'var(--bg-alt)', display: 'flex', alignItems: 'center',
+        background: isConfirmed ? 'var(--primary-soft)' : 'var(--bg-alt)',
+        display: 'flex', alignItems: 'center',
         justifyContent: 'center', fontSize: 22, flexShrink: 0,
       }}>{emoji}</div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start',
+          justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
+        }}>
           <div>
             <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>
               {booking.service_title}
@@ -80,21 +99,46 @@ function BookingCard({ booking, onCancel, role }) {
         )}
 
         {/* Actions */}
-        {booking.status === 'pendente' && (
-          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-            {role === 'provider' && (
+        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {/* Chat button — only for confirmed bookings */}
+          {isConfirmed && (
+            <button
+              className="btn btn-sm"
+              onClick={() => onOpenChat(booking)}
+              style={{
+                background: 'var(--primary-soft)',
+                color: 'var(--text)',
+                border: '1.5px solid rgba(163,191,138,0.6)',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              💬 Chat
+            </button>
+          )}
+
+          {booking.status === 'pendente' && (
+            <>
+              {role === 'provider' && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => onStatusChange(booking.id, 'confirmado')}
+                >✓ Confirmar</button>
+              )}
               <button
-                className="btn btn-primary btn-sm"
-                onClick={() => onCancel(booking.id, 'confirmado')}
-              >✓ Confirmar</button>
-            )}
+                className="btn btn-secondary btn-sm"
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={() => onStatusChange(booking.id, 'cancelado')}
+              >✕ Cancelar</button>
+            </>
+          )}
+
+          {booking.status === 'confirmado' && role === 'provider' && (
             <button
               className="btn btn-secondary btn-sm"
-              style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-              onClick={() => onCancel(booking.id, 'cancelado')}
-            >✕ Cancelar</button>
-          </div>
-        )}
+              onClick={() => onStatusChange(booking.id, 'concluido')}
+            >✔ Marcar concluído</button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -102,9 +146,10 @@ function BookingCard({ booking, onCancel, role }) {
 
 export default function BookingsSection({ role = 'owner' }) {
   const { currentUser } = useAuth();
-  const [bookings, setBookings] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState('all');
+  const [bookings,   setBookings]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [filter,     setFilter]     = useState('all');
+  const [activeChat, setActiveChat] = useState(null);
 
   const fetchBookings = async () => {
     if (!currentUser) return;
@@ -117,7 +162,6 @@ export default function BookingsSection({ role = 'owner' }) {
       );
       const snap = await getDocs(q);
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Sort by date desc client-side (avoids composite index requirement)
       list.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
       setBookings(list);
     } catch (err) {
@@ -132,7 +176,9 @@ export default function BookingsSection({ role = 'owner' }) {
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
       await updateDoc(doc(db, 'bookings', bookingId), { status: newStatus });
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
+      setBookings(prev =>
+        prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b),
+      );
     } catch (err) {
       console.error('Error updating booking:', err);
     }
@@ -146,71 +192,84 @@ export default function BookingsSection({ role = 'owner' }) {
   }, {});
 
   const filters = [
-    { key: 'all',       label: `Todos (${bookings.length})` },
-    { key: 'pendente',  label: `Pendente${counts.pendente ? ` (${counts.pendente})` : ''}` },
-    { key: 'confirmado',label: `Confirmado${counts.confirmado ? ` (${counts.confirmado})` : ''}` },
-    { key: 'concluido', label: `Concluído${counts.concluido ? ` (${counts.concluido})` : ''}` },
-    { key: 'cancelado', label: `Cancelado${counts.cancelado ? ` (${counts.cancelado})` : ''}` },
+    { key: 'all',        label: `Todos (${bookings.length})` },
+    { key: 'pendente',   label: `Pendente${counts.pendente   ? ` (${counts.pendente})`   : ''}` },
+    { key: 'confirmado', label: `Confirmado${counts.confirmado ? ` (${counts.confirmado})` : ''}` },
+    { key: 'concluido',  label: `Concluído${counts.concluido  ? ` (${counts.concluido})`  : ''}` },
+    { key: 'cancelado',  label: `Cancelado${counts.cancelado  ? ` (${counts.cancelado})`  : ''}` },
   ];
 
   return (
-    <div className="section">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <h2 className="section-title" style={{ marginBottom: 0 }}>
-          {role === 'owner' ? 'As minhas reservas' : 'Reservas recebidas'}
-        </h2>
-        <button className="btn btn-secondary btn-sm" onClick={fetchBookings}>↻ Atualizar</button>
-      </div>
-      <p className="section-sub">
-        {role === 'owner'
-          ? 'Historial de reservas e agendamentos activos.'
-          : 'Pedidos de reserva dos clientes.'}
-      </p>
+    <>
+      {activeChat && (
+        <ChatModal
+          booking={activeChat}
+          onClose={() => setActiveChat(null)}
+        />
+      )}
 
-      {/* Filter pills */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-        {filters.map(f => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            style={{
-              padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-              border: '1.5px solid',
-              borderColor: filter === f.key ? 'var(--primary)' : 'var(--border-mid)',
-              background: filter === f.key ? 'var(--primary-soft)' : 'var(--white)',
-              color: filter === f.key ? 'var(--text)' : 'var(--text-3)',
-              cursor: 'pointer', transition: 'all var(--ease)',
-            }}
-          >{f.label}</button>
-        ))}
-      </div>
+      <div className="section">
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', marginBottom: 6,
+        }}>
+          <h2 className="section-title" style={{ marginBottom: 0 }}>
+            {role === 'owner' ? 'As minhas reservas' : 'Reservas recebidas'}
+          </h2>
+          <button className="btn btn-secondary btn-sm" onClick={fetchBookings}>↻ Atualizar</button>
+        </div>
+        <p className="section-sub">
+          {role === 'owner'
+            ? 'Historial de reservas. Clica em "Chat" nas reservas confirmadas para falar com o prestador.'
+            : 'Pedidos de reserva. Confirma para activar o chat com o cliente.'}
+        </p>
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <span className="spinner spinner-dark" style={{ display: 'inline-block' }} />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <span className="empty-state-icon">📅</span>
-          <h3>{filter === 'all' ? 'Sem reservas ainda' : `Nenhuma reserva "${filter}"`}</h3>
-          <p>
-            {role === 'owner'
-              ? 'Explora os serviços disponíveis e faz a tua primeira reserva!'
-              : 'Quando tiveres reservas, aparecerão aqui.'}
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.map(b => (
-            <BookingCard
-              key={b.id}
-              booking={b}
-              role={role}
-              onCancel={handleStatusChange}
-            />
+        {/* Filter pills */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+          {filters.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              style={{
+                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                border: '1.5px solid',
+                borderColor: filter === f.key ? 'var(--primary)' : 'var(--border-mid)',
+                background: filter === f.key ? 'var(--primary-soft)' : 'var(--white)',
+                color: filter === f.key ? 'var(--text)' : 'var(--text-3)',
+                cursor: 'pointer', transition: 'all var(--ease)',
+              }}
+            >{f.label}</button>
           ))}
         </div>
-      )}
-    </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <span className="spinner spinner-dark" style={{ display: 'inline-block' }} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-state-icon">📅</span>
+            <h3>{filter === 'all' ? 'Sem reservas ainda' : `Nenhuma reserva "${filter}"`}</h3>
+            <p>
+              {role === 'owner'
+                ? 'Explora os serviços disponíveis e faz a tua primeira reserva!'
+                : 'Quando tiveres reservas, aparecerão aqui.'}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {filtered.map(b => (
+              <BookingCard
+                key={b.id}
+                booking={b}
+                role={role}
+                onStatusChange={handleStatusChange}
+                onOpenChat={setActiveChat}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

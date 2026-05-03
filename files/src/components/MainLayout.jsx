@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogoIconDark } from '../pages/AuthPage';
+import { LogoIconDark } from '../ui/Logo';
+import { Button } from '../ui';
 import EditProfilePage from '../pages/EditProfilePage';
 import AccountSettingsPage from '../pages/AccountSettingsPage';
 
@@ -17,7 +18,7 @@ export function UserMenu({ displayName, email, onLogout, onEditProfile, onAccoun
   }, []);
 
   const initials = displayName
-    ? displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
+    ? displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : email?.[0]?.toUpperCase() ?? '?';
 
   return (
@@ -73,9 +74,9 @@ export default function MainLayout({ children, navCenter }) {
             <span>PetLink</span>
           </div>
 
-          <div style={{ display:'flex', gap:8, marginLeft:16 }}>
+          <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
             {isOwner    && <span className="tag">🐾 Pet Owner</span>}
-            {isProvider && <span className="tag" style={{ borderColor:'var(--sky)', color:'var(--sky)' }}>💼 Provider</span>}
+            {isProvider && <span className="tag" style={{ borderColor: 'var(--sky)', color: 'var(--sky)' }}>💼 Provider</span>}
           </div>
 
           <div className="nav-spacer" />

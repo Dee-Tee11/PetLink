@@ -443,3 +443,32 @@ button { cursor: pointer; }
 
 /* misc */
 .tag { display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border-mid);color:var(--text-2);background:var(--bg-alt); }
+
+/* ── Tab Bar ──────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--border);
+}
+.tab-bar__btn {
+  padding: 0 0 12px;
+  margin-right: 24px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color var(--ease), border-color var(--ease);
+  font-family: var(--font-body);
+}
+.tab-bar__btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.tab-bar__btn:hover:not(.active) {
+  color: var(--text-2);
+}

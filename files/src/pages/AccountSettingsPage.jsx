@@ -8,12 +8,13 @@ import {
 } from 'firebase/auth';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { Button, Input } from '../ui';
 
 function Section({ title, children }) {
   return (
     <div style={{
       background: 'var(--white)', border: '1.5px solid var(--border-mid)',
-      borderRadius: 'var(--radius-lg)', padding: '24px 24px', marginBottom: 16,
+      borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: 16,
     }}>
       <h3 style={{ fontSize: 17, fontFamily: 'var(--font-display)', marginBottom: 18 }}>{title}</h3>
       {children}
@@ -25,14 +26,14 @@ export default function AccountSettingsPage({ onClose }) {
   const { currentUser, userProfile, logout } = useAuth();
 
   /* Password change */
-  const [currentPw,  setCurrentPw]  = useState('');
-  const [newPw,      setNewPw]      = useState('');
-  const [confirmPw,  setConfirmPw]  = useState('');
-  const [pwError,    setPwError]    = useState('');
-  const [pwSuccess,  setPwSuccess]  = useState(false);
-  const [pwLoading,  setPwLoading]  = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw,     setNewPw]     = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwError,   setPwError]   = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
 
-  /* Notifications (local toggle — hook up to Firestore if needed) */
+  /* Notifications */
   const [emailNotifs, setEmailNotifs] = useState(userProfile?.notifications?.email !== false);
   const [notifSaved,  setNotifSaved]  = useState(false);
 
@@ -46,7 +47,7 @@ export default function AccountSettingsPage({ onClose }) {
   const handlePasswordChange = async () => {
     setPwError(''); setPwSuccess(false);
     if (!currentPw || !newPw || !confirmPw) { setPwError('Fill in all fields.'); return; }
-    if (newPw.length < 6) { setPwError('New password must be at least 6 characters.'); return; }
+    if (newPw.length < 6)  { setPwError('New password must be at least 6 characters.'); return; }
     if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return; }
     setPwLoading(true);
     try {
@@ -69,40 +70,45 @@ export default function AccountSettingsPage({ onClose }) {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== 'DELETE') { setDeleteError('Type DELETE to confirm.'); return; }
-    setDeleteLoading(true);
-    setDeleteError('');
+    setDeleteLoading(true); setDeleteError('');
     try {
       await deleteDoc(doc(db, 'users', currentUser.uid));
       await deleteUser(currentUser);
       await logout();
     } catch (err) {
-      if (err.code === 'auth/requires-recent-login') {
-        setDeleteError('Please sign out and sign back in before deleting your account.');
-      } else {
-        setDeleteError('Could not delete account. Please try again.');
-      }
+      setDeleteError(
+        err.code === 'auth/requires-recent-login'
+          ? 'Please sign out and sign back in before deleting your account.'
+          : 'Could not delete account. Please try again.'
+      );
     } finally {
       setDeleteLoading(false);
     }
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(45,58,40,0.4)',
-      backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start',
-      justifyContent: 'center', zIndex: 500, padding: '40px 20px', overflowY: 'auto',
-    }} onClick={e => e.target === e.currentTarget && onClose?.()}>
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(45,58,40,0.4)',
+        backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start',
+        justifyContent: 'center', zIndex: 500, padding: '40px 20px', overflowY: 'auto',
+      }}
+      onClick={e => e.target === e.currentTarget && onClose?.()}
+    >
       <div style={{ width: '100%', maxWidth: 500 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h2 style={{ fontSize: 28, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>Account Settings</h2>
           {onClose && (
-            <button onClick={onClose} style={{
-              background: 'var(--white)', border: '1.5px solid var(--border-mid)',
-              borderRadius: '50%', width: 36, height: 36, fontSize: 20,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text)',
-            }}>×</button>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'var(--white)', border: '1.5px solid var(--border-mid)',
+                borderRadius: '50%', width: 36, height: 36, fontSize: 20,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--text)',
+              }}
+            >×</button>
           )}
         </div>
 
@@ -132,32 +138,22 @@ export default function AccountSettingsPage({ onClose }) {
           </div>
         </Section>
 
-        {/* Change password — only for email accounts */}
+        {/* Change password — email accounts only */}
         {!isGoogle && (
           <Section title="Change Password">
-            <div className="field-group">
-              <label className="label">Current password</label>
-              <input className="input-field" type="password" placeholder="••••••••"
-                value={currentPw} onChange={e => setCurrentPw(e.target.value)} />
-            </div>
+            <Input label="Current password" type="password" placeholder="••••••••"
+              value={currentPw} onChange={e => setCurrentPw(e.target.value)} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field-group" style={{ marginBottom: 0 }}>
-                <label className="label">New password</label>
-                <input className="input-field" type="password" placeholder="6+ chars"
-                  value={newPw} onChange={e => setNewPw(e.target.value)} />
-              </div>
-              <div className="field-group" style={{ marginBottom: 0 }}>
-                <label className="label">Confirm</label>
-                <input className="input-field" type="password" placeholder="Repeat"
-                  value={confirmPw} onChange={e => setConfirmPw(e.target.value)} />
-              </div>
+              <Input label="New password" type="password" placeholder="6+ chars"
+                value={newPw} onChange={e => setNewPw(e.target.value)} />
+              <Input label="Confirm" type="password" placeholder="Repeat"
+                value={confirmPw} onChange={e => setConfirmPw(e.target.value)} />
             </div>
-            {pwError   && <p className="error-msg" style={{ marginTop: 10 }}>{pwError}</p>}
+            {pwError   && <p className="error-msg"   style={{ marginTop: 10 }}>{pwError}</p>}
             {pwSuccess  && <p style={{ color: 'var(--success)', fontSize: 13, marginTop: 10, fontWeight: 600 }}>✅ Password updated!</p>}
-            <button className="btn btn-primary btn-sm" style={{ marginTop: 14 }}
-              onClick={handlePasswordChange} disabled={pwLoading}>
-              {pwLoading ? <span className="spinner" /> : 'Update password'}
-            </button>
+            <Button variant="primary" size="sm" style={{ marginTop: 14 }} onClick={handlePasswordChange} loading={pwLoading}>
+              Update password
+            </Button>
           </Section>
         )}
 
@@ -181,16 +177,13 @@ export default function AccountSettingsPage({ onClose }) {
               style={{
                 width: 44, height: 24, borderRadius: 12,
                 background: emailNotifs ? 'var(--primary)' : 'var(--border-mid)',
-                border: 'none', cursor: 'pointer', position: 'relative',
-                transition: 'background 0.25s',
+                border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.25s',
               }}
             >
               <div style={{
-                position: 'absolute', top: 3,
-                left: emailNotifs ? 23 : 3,
+                position: 'absolute', top: 3, left: emailNotifs ? 23 : 3,
                 width: 18, height: 18, borderRadius: '50%',
-                background: '#fff', transition: 'left 0.25s',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                background: '#fff', transition: 'left 0.25s', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
               }} />
             </button>
           </div>
@@ -212,21 +205,23 @@ export default function AccountSettingsPage({ onClose }) {
           <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16, lineHeight: 1.6 }}>
             Deleting your account is permanent and cannot be undone. All your data, pets and profile will be removed.
           </p>
-          <div className="field-group" style={{ marginBottom: 10 }}>
-            <label className="label" style={{ color: 'var(--danger)' }}>Type DELETE to confirm</label>
-            <input className="input-field" placeholder="DELETE"
-              value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
-              style={{ borderColor: deleteConfirm === 'DELETE' ? 'var(--danger)' : undefined }}
-            />
-          </div>
+          <Input
+            label="Type DELETE to confirm"
+            placeholder="DELETE"
+            value={deleteConfirm}
+            onChange={e => setDeleteConfirm(e.target.value)}
+            style={{ borderColor: deleteConfirm === 'DELETE' ? 'var(--danger)' : undefined }}
+          />
           {deleteError && <p className="error-msg" style={{ marginBottom: 10 }}>{deleteError}</p>}
-          <button
-            className="btn btn-danger btn-sm"
+          <Button
+            variant="danger"
+            size="sm"
             disabled={deleteLoading || deleteConfirm !== 'DELETE'}
+            loading={deleteLoading}
             onClick={handleDeleteAccount}
           >
-            {deleteLoading ? <span className="spinner" /> : 'Delete my account'}
-          </button>
+            Delete my account
+          </Button>
         </div>
       </div>
     </div>

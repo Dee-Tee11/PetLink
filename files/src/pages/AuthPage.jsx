@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { LogoIcon, LogoIconDark } from '../ui/Logo';
+import { Button, Input, Modal } from '../ui';
 
 /* ── Google Icon ── */
 const GoogleIcon = () => (
@@ -12,39 +14,14 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const LogoIcon = ({ size = 32 }) => (
-  <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-    <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.25)" />
-    <ellipse cx="15" cy="9"  rx="4"  ry="5"  fill="white" />
-    <ellipse cx="25" cy="9"  rx="4"  ry="5"  fill="white" />
-    <ellipse cx="8"  cy="17" rx="3"  ry="4"  fill="white" />
-    <ellipse cx="32" cy="17" rx="3"  ry="4"  fill="white" />
-    <ellipse cx="20" cy="28" rx="10" ry="11" fill="white" />
-    <ellipse cx="12" cy="22" rx="5"  ry="6"  fill="white" />
-    <ellipse cx="28" cy="22" rx="5"  ry="6"  fill="white" />
-  </svg>
-);
-
-const LogoIconDark = ({ size = 28 }) => (
-  <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-    <rect width="40" height="40" rx="10" fill="var(--primary)" />
-    <ellipse cx="15" cy="9"  rx="4"  ry="5"  fill="white" />
-    <ellipse cx="25" cy="9"  rx="4"  ry="5"  fill="white" />
-    <ellipse cx="8"  cy="17" rx="3"  ry="4"  fill="white" />
-    <ellipse cx="32" cy="17" rx="3"  ry="4"  fill="white" />
-    <ellipse cx="20" cy="28" rx="10" ry="11" fill="white" />
-    <ellipse cx="12" cy="22" rx="5"  ry="6"  fill="white" />
-    <ellipse cx="28" cy="22" rx="5"  ry="6"  fill="white" />
-  </svg>
-);
-
+/* Keep legacy named exports so any other importers still work */
 export { LogoIcon, LogoIconDark };
 
 /* ── Password Reset Modal ── */
 function ResetModal({ onClose, onSend }) {
-  const [email, setEmail]   = useState('');
-  const [sent,  setSent]    = useState(false);
-  const [error, setError]   = useState('');
+  const [email,   setEmail]   = useState('');
+  const [sent,    setSent]    = useState(false);
+  const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
@@ -53,7 +30,7 @@ function ResetModal({ onClose, onSend }) {
     try {
       await onSend(email);
       setSent(true);
-    } catch (err) {
+    } catch {
       setError('Could not send reset email. Check the address and try again.');
     } finally {
       setLoading(false);
@@ -61,54 +38,49 @@ function ResetModal({ onClose, onSend }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box">
-        <h2 className="modal-title">Reset password</h2>
-        {sent ? (
-          <>
-            <p className="modal-sub" style={{ color:'var(--primary)', fontWeight:600 }}>
-              ✅ Check your inbox! We sent a reset link to <strong>{email}</strong>.
-            </p>
-            <button className="btn btn-primary btn-full" onClick={onClose}>Done</button>
-          </>
-        ) : (
-          <>
-            <p className="modal-sub">Enter the email you signed up with and we'll send you a reset link.</p>
-            <div className="field-group">
-              <label className="label">Email address</label>
-              <input
-                className="input-field"
-                type="email" placeholder="you@example.com"
-                value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleSend()}
-                autoFocus
-              />
-            </div>
-            {error && <p className="error-msg">{error}</p>}
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSend} disabled={loading}>
-                {loading ? <span className="spinner" /> : 'Send link'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    <Modal onClose={onClose}>
+      <h2 className="modal-title">Reset password</h2>
+      {sent ? (
+        <>
+          <p className="modal-sub" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+            ✅ Check your inbox! We sent a reset link to <strong>{email}</strong>.
+          </p>
+          <Button variant="primary" full onClick={onClose}>Done</Button>
+        </>
+      ) : (
+        <>
+          <p className="modal-sub">Enter the email you signed up with and we'll send you a reset link.</p>
+          <Input
+            label="Email address"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError(''); }}
+            onKeyDown={e => e.key === 'Enter' && handleSend()}
+            error={error}
+            autoFocus
+          />
+          <div className="modal-actions">
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" onClick={handleSend} loading={loading}>Send link</Button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
 
 export default function AuthPage() {
   const { signup, login, loginWithGoogle, resetPassword } = useAuth();
 
-  const [tab,       setTab]       = useState('signin');
-  const [email,     setEmail]     = useState('');
-  const [password,  setPassword]  = useState('');
-  const [confirm,   setConfirm]   = useState('');
-  const [error,     setError]     = useState('');
-  const [loading,   setLoading]   = useState(false);
-  const [googleLoad,setGoogleLoad]= useState(false);
-  const [showReset, setShowReset] = useState(false);
+  const [tab,        setTab]        = useState('signin');
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
+  const [confirm,    setConfirm]    = useState('');
+  const [error,      setError]      = useState('');
+  const [loading,    setLoading]    = useState(false);
+  const [googleLoad, setGoogleLoad] = useState(false);
+  const [showReset,  setShowReset]  = useState(false);
 
   const isSignUp = tab === 'signup';
 
@@ -146,7 +118,7 @@ export default function AuthPage() {
     setGoogleLoad(true);
     try {
       await loginWithGoogle();
-    } catch (err) {
+    } catch {
       setError('Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoad(false);
@@ -156,10 +128,7 @@ export default function AuthPage() {
   return (
     <>
       {showReset && (
-        <ResetModal
-          onClose={() => setShowReset(false)}
-          onSend={resetPassword}
-        />
+        <ResetModal onClose={() => setShowReset(false)} onSend={resetPassword} />
       )}
 
       <div className="auth-layout">
@@ -189,11 +158,11 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <div className="auth-brand-stats" style={{ display:'flex', gap:'32px', position:'relative', zIndex:1 }}>
+          <div className="auth-brand-stats" style={{ display: 'flex', gap: '32px', position: 'relative', zIndex: 1 }}>
             {[['500+', 'Professionals'], ['12k+', 'Happy pets'], ['4.9★', 'Avg. rating']].map(([val, lbl]) => (
               <div key={lbl}>
-                <div style={{ fontFamily:'var(--font-display)', fontSize:'26px', fontWeight:700, color:'#fff' }}>{val}</div>
-                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.6)', marginTop:2 }}>{lbl}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 700, color: '#fff' }}>{val}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{lbl}</div>
               </div>
             ))}
           </div>
@@ -216,28 +185,29 @@ export default function AuthPage() {
             </p>
 
             {/* Google button */}
-            <button
-              type="button"
-              className="btn btn-google btn-full"
+            <Button
+              id="btn-google"
+              variant="google"
+              full
+              loading={googleLoad}
               onClick={handleGoogle}
-              disabled={googleLoad}
               style={{ marginBottom: 4 }}
             >
-              {googleLoad ? <span className="spinner spinner-dark" /> : <GoogleIcon />}
-              Continue with Google
-            </button>
+              <GoogleIcon /> Continue with Google
+            </Button>
 
             <div className="auth-divider">or</div>
 
             <form onSubmit={handleSubmit}>
-              <div className="field-group">
-                <label className="label">Email address</label>
-                <input
-                  className="input-field"
-                  type="email" placeholder="you@example.com" autoComplete="email"
-                  value={email} onChange={e => setEmail(e.target.value)} required
-                />
-              </div>
+              <Input
+                label="Email address"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
 
               <div className="field-group" style={{ marginBottom: isSignUp ? 16 : 8 }}>
                 <label className="label">Password</label>
@@ -246,12 +216,14 @@ export default function AuthPage() {
                   type="password"
                   placeholder={isSignUp ? 'At least 6 characters' : '••••••••'}
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  value={password} onChange={e => setPassword(e.target.value)} required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
                 />
               </div>
 
               {!isSignUp && (
-                <div style={{ textAlign:'right', marginBottom:16 }}>
+                <div style={{ textAlign: 'right', marginBottom: 16 }}>
                   <button type="button" className="auth-forgot" onClick={() => setShowReset(true)}>
                     Forgot password?
                   </button>
@@ -259,29 +231,34 @@ export default function AuthPage() {
               )}
 
               {isSignUp && (
-                <div className="field-group">
-                  <label className="label">Confirm Password</label>
-                  <input
-                    className="input-field"
-                    type="password" placeholder="Repeat your password" autoComplete="new-password"
-                    value={confirm} onChange={e => setConfirm(e.target.value)} required
-                  />
-                </div>
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="Repeat your password"
+                  autoComplete="new-password"
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  required
+                />
               )}
 
               {error && <p className="error-msg">{error}</p>}
 
-              <button
-                className="btn btn-primary btn-lg btn-full"
-                type="submit" disabled={loading}
+              <Button
+                id="btn-auth-submit"
+                variant="primary"
+                size="lg"
+                full
+                type="submit"
+                loading={loading}
                 style={{ marginTop: 8 }}
               >
-                {loading ? <span className="spinner" /> : isSignUp ? 'Create Account' : 'Sign In'}
-              </button>
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </Button>
             </form>
 
             {isSignUp && (
-              <p style={{ fontSize:12, color:'var(--text-3)', textAlign:'center', marginTop:16, lineHeight:1.5 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
                 By signing up you agree to our Terms of Service and Privacy Policy.
               </p>
             )}

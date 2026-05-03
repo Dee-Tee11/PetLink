@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Button, Input } from '../ui';
 
 function CheckIcon() {
   return (
@@ -10,9 +11,9 @@ function CheckIcon() {
 }
 
 const PROFILE_CARDS = [
-  { key: 'owner',    icon: '🐾', iconClass: 'green',  title: 'Pet Owner',        desc: 'Find and book services for your pets.' },
+  { key: 'owner',    icon: '🐾',   iconClass: 'green',  title: 'Pet Owner',        desc: 'Find and book services for your pets.' },
   { key: 'provider', icon: '🧑‍💼', iconClass: 'pink',   title: 'Service Provider', desc: 'Offer your skills to pet owners.' },
-  { key: 'both',     icon: '✨', iconClass: 'yellow', title: 'Both',             desc: "I'm an owner AND a provider." },
+  { key: 'both',     icon: '✨',   iconClass: 'yellow', title: 'Both',             desc: "I'm an owner AND a provider." },
 ];
 
 export default function EditProfilePage({ onClose }) {
@@ -32,8 +33,7 @@ export default function EditProfilePage({ onClose }) {
 
   const handleSave = async () => {
     if (!displayName.trim()) { setError('Name is required.'); return; }
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
       const profileTypes = profileType === 'both' ? ['owner', 'provider'] : [profileType];
       await saveUserProfile(currentUser.uid, {
@@ -43,7 +43,7 @@ export default function EditProfilePage({ onClose }) {
         providerProfile: { bio, location },
       });
       setSuccess(true);
-      setTimeout(() => { setSuccess(false); if (onClose) onClose(); }, 1200);
+      setTimeout(() => { setSuccess(false); onClose?.(); }, 1200);
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -52,35 +52,41 @@ export default function EditProfilePage({ onClose }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(45,58,40,0.4)',
-      backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', zIndex: 500, padding: 20, overflowY: 'auto',
-    }} onClick={e => e.target === e.currentTarget && onClose?.()}>
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(45,58,40,0.4)',
+        backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', zIndex: 500, padding: 20, overflowY: 'auto',
+      }}
+      onClick={e => e.target === e.currentTarget && onClose?.()}
+    >
       <div style={{
         background: 'var(--white)', borderRadius: 'var(--radius-xl)',
         width: '100%', maxWidth: 480, boxShadow: 'var(--shadow-lg)',
         padding: '36px 32px', margin: 'auto',
       }}>
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <h2 style={{ fontSize: 26, fontFamily: 'var(--font-display)' }}>Edit Profile</h2>
           {onClose && (
-            <button onClick={onClose} style={{
-              background: 'var(--bg-alt)', border: 'none', borderRadius: '50%',
-              width: 32, height: 32, fontSize: 18, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)',
-            }}>×</button>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'var(--bg-alt)', border: 'none', borderRadius: '50%',
+                width: 32, height: 32, fontSize: 18, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)',
+              }}
+            >×</button>
           )}
         </div>
 
-        {/* Avatar placeholder */}
+        {/* Avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
             background: 'linear-gradient(135deg, var(--yellow), var(--green-mid))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, fontWeight: 700, color: 'var(--text)',
-            flexShrink: 0,
+            fontSize: 24, fontWeight: 700, color: 'var(--text)', flexShrink: 0,
           }}>
             {displayName?.[0]?.toUpperCase() || '?'}
           </div>
@@ -91,24 +97,16 @@ export default function EditProfilePage({ onClose }) {
         </div>
 
         {/* Fields */}
-        <div className="field-group">
-          <label className="label">Display name *</label>
-          <input className="input-field" placeholder="e.g. Sofia Martins" value={displayName} onChange={e => setDisplayName(e.target.value)} />
-        </div>
+        <Input label="Display name *" placeholder="e.g. Sofia Martins"
+          value={displayName} onChange={e => setDisplayName(e.target.value)} />
 
-        <div className="field-group">
-          <label className="label">Bio</label>
-          <textarea
-            className="input-field" style={{ minHeight: 80, resize: 'vertical' }}
-            placeholder="Tell the community a little about yourself…"
-            value={bio} onChange={e => setBio(e.target.value)}
-          />
-        </div>
+        <Input label="Bio" as="textarea"
+          style={{ minHeight: 80, resize: 'vertical' }}
+          placeholder="Tell the community a little about yourself…"
+          value={bio} onChange={e => setBio(e.target.value)} />
 
-        <div className="field-group">
-          <label className="label">Location</label>
-          <input className="input-field" placeholder="e.g. Porto, Portugal" value={location} onChange={e => setLocation(e.target.value)} />
-        </div>
+        <Input label="Location" placeholder="e.g. Porto, Portugal"
+          value={location} onChange={e => setLocation(e.target.value)} />
 
         {/* Profile type */}
         <label className="label" style={{ marginBottom: 10 }}>I am a…</label>
@@ -138,10 +136,10 @@ export default function EditProfilePage({ onClose }) {
         {success && <p style={{ color: 'var(--success)', fontSize: 14, marginBottom: 12, fontWeight: 600 }}>✅ Profile saved!</p>}
 
         <div style={{ display: 'flex', gap: 10 }}>
-          {onClose && <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>}
-          <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleSave} disabled={saving}>
-            {saving ? <span className="spinner" /> : 'Save changes'}
-          </button>
+          {onClose && <Button variant="secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</Button>}
+          <Button variant="primary" style={{ flex: 2 }} onClick={handleSave} loading={saving}>
+            Save changes
+          </Button>
         </div>
       </div>
     </div>

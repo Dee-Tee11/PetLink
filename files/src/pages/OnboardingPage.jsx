@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogoIconDark } from './AuthPage';
+import { LogoIconDark } from '../ui/Logo';
+import { Button, Input } from '../ui';
 
 const STEPS = ['Profile', 'Role', 'Pets', 'Done'];
 
 const SPECIES = [
-  { key:'dog',    emoji:'🐕', label:'Dog'    },
-  { key:'cat',    emoji:'🐈', label:'Cat'    },
-  { key:'rabbit', emoji:'🐇', label:'Rabbit' },
-  { key:'bird',   emoji:'🐦', label:'Bird'   },
-  { key:'fish',   emoji:'🐟', label:'Fish'   },
-  { key:'other',  emoji:'🐾', label:'Other'  },
+  { key: 'dog',    emoji: '🐕', label: 'Dog'    },
+  { key: 'cat',    emoji: '🐈', label: 'Cat'    },
+  { key: 'rabbit', emoji: '🐇', label: 'Rabbit' },
+  { key: 'bird',   emoji: '🐦', label: 'Bird'   },
+  { key: 'fish',   emoji: '🐟', label: 'Fish'   },
+  { key: 'other',  emoji: '🐾', label: 'Other'  },
 ];
 
 const speciesEmoji = (key) => SPECIES.find(s => s.key === key)?.emoji ?? '🐾';
@@ -36,10 +37,10 @@ function AddPetForm({ onAdd, onCancel }) {
 
   return (
     <div className="add-pet-form">
-      <p style={{ fontWeight:500, fontSize:14, color:'var(--text-2)', marginBottom:14 }}>New pet</p>
+      <p style={{ fontWeight: 500, fontSize: 14, color: 'var(--text-2)', marginBottom: 14 }}>New pet</p>
 
       <label className="label">Species</label>
-      <div className="species-grid" style={{ marginBottom:14 }}>
+      <div className="species-grid" style={{ marginBottom: 14 }}>
         {SPECIES.map(s => (
           <button key={s.key} type="button"
             className={`species-btn ${species === s.key ? 'active' : ''}`}
@@ -51,25 +52,16 @@ function AddPetForm({ onAdd, onCancel }) {
       </div>
 
       <div className="add-pet-form-grid">
-        <div className="field-group" style={{ marginBottom:0 }}>
-          <label className="label">Name *</label>
-          <input className="input-field" placeholder="e.g. Buddy" value={name} onChange={e => setName(e.target.value)} />
-        </div>
-        <div className="field-group" style={{ marginBottom:0 }}>
-          <label className="label">Breed</label>
-          <input className="input-field" placeholder="e.g. Labrador" value={breed} onChange={e => setBreed(e.target.value)} />
-        </div>
-        <div className="field-group" style={{ marginBottom:0 }}>
-          <label className="label">Age (years)</label>
-          <input className="input-field" type="number" min="0" max="30" placeholder="e.g. 3" value={age} onChange={e => setAge(e.target.value)} />
-        </div>
+        <Input label="Name *"       placeholder="e.g. Buddy"   value={name}  onChange={e => setName(e.target.value)} />
+        <Input label="Breed"        placeholder="e.g. Labrador" value={breed} onChange={e => setBreed(e.target.value)} />
+        <Input label="Age (years)"  type="number" min="0" max="30" placeholder="e.g. 3" value={age} onChange={e => setAge(e.target.value)} />
       </div>
 
       {error && <p className="error-msg">{error}</p>}
 
-      <div style={{ display:'flex', gap:10, marginTop:14 }}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit}>Add Pet</button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel}>Cancel</button>
+      <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+        <Button variant="primary"   size="sm" type="button" onClick={submit}>Add Pet</Button>
+        <Button variant="secondary" size="sm" type="button" onClick={onCancel}>Cancel</Button>
       </div>
     </div>
   );
@@ -80,33 +72,25 @@ export default function OnboardingPage() {
 
   const [step,        setStep]        = useState(0);
   const [name,        setName]        = useState('');
-  const [profileType, setProfileType] = useState('');   // 'owner' | 'provider' | 'both'
+  const [profileType, setProfileType] = useState('');
   const [pets,        setPets]        = useState([]);
   const [showAddPet,  setShowAddPet]  = useState(false);
   const [error,       setError]       = useState('');
   const [saving,      setSaving]      = useState(false);
 
-  /* ── Step navigation ── */
   const next = () => { setError(''); setStep(s => s + 1); };
   const back = () => { setError(''); setStep(s => s - 1); };
 
-  /* ── Step validations ── */
   const canNext = () => {
     if (step === 0) return name.trim().length >= 2;
     if (step === 1) return !!profileType;
     return true;
   };
 
-  /* ── Remove pet ── */
   const removePet = (id) => setPets(ps => ps.filter(p => p.id !== id));
 
-  /* ── Final save ── */
   const finish = async () => {
-    // Safety: make sure we have a real authenticated user
-    if (!currentUser?.uid) {
-      setError('Session expired. Please sign out and sign in again.');
-      return;
-    }
+    if (!currentUser?.uid) { setError('Session expired. Please sign out and sign in again.'); return; }
     setSaving(true);
     try {
       const profileTypes = profileType === 'both' ? ['owner', 'provider'] : [profileType];
@@ -116,7 +100,6 @@ export default function OnboardingPage() {
         pets:               profileType === 'provider' ? [] : pets,
         onboardingComplete: true,
       });
-      // saveUserProfile updates context → App.jsx auto-navigates to Dashboard
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -124,26 +107,18 @@ export default function OnboardingPage() {
     }
   };
 
-  /* ── Skip pets & finish ── */
-  const skipAndFinish = () => finish();
-
   return (
     <div className="onboard-layout">
       <div className="onboard-logo">
         <LogoIconDark size={28} />
         <span>PetLink</span>
-        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           {currentUser?.email && (
-            <span style={{ fontSize:13, color:'var(--text-3)' }}>{currentUser.email}</span>
+            <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{currentUser.email}</span>
           )}
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={logout}
-            title="Sign out"
-            style={{ fontSize:13, color:'var(--text-3)' }}
-          >
+          <Button variant="ghost" size="sm" onClick={logout} style={{ fontSize: 13, color: 'var(--text-3)' }}>
             Sign out
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -164,23 +139,20 @@ export default function OnboardingPage() {
             <h2 className="onboard-step-title">What's your name?</h2>
             <p className="onboard-step-sub">This is how the community will know you.</p>
 
-            <div className="field-group">
-              <label className="label">Full name or nickname</label>
-              <input
-                className="input-field"
-                style={{ fontSize:17 }}
-                placeholder="e.g. Sofia Martins"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && canNext() && next()}
-                autoFocus
-              />
-            </div>
+            <Input
+              label="Full name or nickname"
+              style={{ fontSize: 17 }}
+              placeholder="e.g. Sofia Martins"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && canNext() && next()}
+              autoFocus
+            />
 
             <div className="onboard-actions">
-              <button className="btn btn-primary btn-lg" onClick={next} disabled={!canNext()}>
+              <Button variant="primary" size="lg" onClick={next} disabled={!canNext()}>
                 Continue →
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -194,24 +166,9 @@ export default function OnboardingPage() {
 
             <div className="profile-cards">
               {[
-                {
-                  key: 'owner',
-                  icon: '🐾', iconClass: 'orange',
-                  title: 'Pet Owner',
-                  desc: 'Find and book services for your pets — grooming, walking, vet visits & more.',
-                },
-                {
-                  key: 'provider',
-                  icon: '🧑‍💼', iconClass: 'green',
-                  title: 'Service Provider',
-                  desc: 'Offer your skills and services to pet owners in your area.',
-                },
-                {
-                  key: 'both',
-                  icon: '✨', iconClass: 'both',
-                  title: 'Both',
-                  desc: "I'm a pet owner AND I'd also like to offer services.",
-                },
+                { key: 'owner',    icon: '🐾',   iconClass: 'orange', title: 'Pet Owner',        desc: 'Find and book services for your pets — grooming, walking, vet visits & more.' },
+                { key: 'provider', icon: '🧑‍💼', iconClass: 'green',  title: 'Service Provider', desc: 'Offer your skills and services to pet owners in your area.' },
+                { key: 'both',     icon: '✨',   iconClass: 'both',   title: 'Both',             desc: "I'm a pet owner AND I'd also like to offer services." },
               ].map(card => (
                 <div
                   key={card.key}
@@ -230,18 +187,18 @@ export default function OnboardingPage() {
               ))}
             </div>
 
-            {error && <p className="error-msg" style={{ marginTop:8 }}>{error}</p>}
+            {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
 
             <div className="onboard-actions">
-              <button className="btn btn-secondary" onClick={back} disabled={saving}>← Back</button>
+              <Button variant="secondary" onClick={back} disabled={saving}>← Back</Button>
               {profileType === 'provider' ? (
-                <button className="btn btn-primary btn-lg" onClick={finish} disabled={!canNext() || saving}>
-                  {saving ? <span className="spinner" /> : 'Finish →'}
-                </button>
+                <Button variant="primary" size="lg" onClick={finish} disabled={!canNext() || saving} loading={saving}>
+                  Finish →
+                </Button>
               ) : (
-                <button className="btn btn-primary btn-lg" onClick={next} disabled={!canNext()}>
+                <Button variant="primary" size="lg" onClick={next} disabled={!canNext()}>
                   Continue →
-                </button>
+                </Button>
               )}
             </div>
           </>
@@ -282,33 +239,25 @@ export default function OnboardingPage() {
                 onCancel={() => setShowAddPet(false)}
               />
             ) : (
-              <button
-                type="button"
-                className="btn btn-secondary btn-full"
-                style={{ marginBottom:8 }}
-                onClick={() => setShowAddPet(true)}
-              >
+              <Button variant="secondary" full style={{ marginBottom: 8 }} onClick={() => setShowAddPet(true)}>
                 + Add a pet
-              </button>
+              </Button>
             )}
 
-            {error && <p className="error-msg" style={{ marginTop:8 }}>{error}</p>}
+            {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
 
             <div className="onboard-actions">
-              <button className="btn btn-secondary" onClick={back}>← Back</button>
+              <Button variant="secondary" onClick={back}>← Back</Button>
               {pets.length === 0 ? (
-                <button className="btn btn-ghost" onClick={skipAndFinish} disabled={saving}>
-                  {saving ? <span className="spinner spinner-dark" /> : 'Skip for now'}
-                </button>
+                <Button variant="ghost" onClick={finish} loading={saving}>Skip for now</Button>
               ) : (
-                <button className="btn btn-primary btn-lg" onClick={finish} disabled={saving || showAddPet}>
-                  {saving ? <span className="spinner" /> : `Finish →`}
-                </button>
+                <Button variant="primary" size="lg" onClick={finish} disabled={saving || showAddPet} loading={saving}>
+                  Finish →
+                </Button>
               )}
             </div>
           </>
         )}
-
       </div>
     </div>
   );

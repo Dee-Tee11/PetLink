@@ -108,7 +108,6 @@ export default function LandingPage() {
         <div className="hero-blob b2"></div>
         <div className="hero-blob b3"></div>
         <div className="hero-content">
-          <div className="pill">🐾 A plataforma de cuidado de pets</div>
           <h1>Cada pet merece<br/><em>o melhor cuidado</em></h1>
           <p className="hero-sub">Conecta-te com profissionais locais de confiança — groomers, passeadores, veterinários e treinadores.</p>
           <div className="hero-btns">

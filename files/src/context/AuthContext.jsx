@@ -19,16 +19,12 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-// Detect environments where popups are unreliable
 const isPopupUnreliable = () => {
   const ua = navigator.userAgent.toLowerCase();
-  // Mobile browsers, in-app browsers (Instagram, Facebook), Safari on iOS
   return (
-    /iphone|ipad|ipod/.test(ua) ||
-    /android/.test(ua) ||
+    /iphone|ipad|ipod|android/.test(ua) ||
     /instagram|fban|fbav|twitter/.test(ua) ||
-    // Safari on desktop also sometimes blocks popups
-    (/safari/.test(ua) && !/chrome/.test(ua))
+    window.innerWidth < 768
   );
 };
 
@@ -152,8 +148,10 @@ export function AuthProvider({ children }) {
 
   /* ── Auth state listener ── */
   useEffect(() => {
-    // Handle redirect result FIRST (fires once after Google redirect)
-    const handleRedirect = async () => {
+    let unsub = null;
+
+    const initAuth = async () => {
+      // 1. Handle redirect result if we're returning from a Google redirect
       if (sessionStorage.getItem('pendingGoogleRedirect')) {
         sessionStorage.removeItem('pendingGoogleRedirect');
         try {
@@ -163,35 +161,24 @@ export function AuthProvider({ children }) {
           }
         } catch (err) {
           console.error('Google redirect error:', err);
-          // The onAuthStateChanged below will still fire, so UI recovers
         }
       }
-    };
 
-    handleRedirect();
-
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const profile = await loadUserProfile(user.uid);
-
-        if (!profile) {
-          console.warn('Stale session — no Firestore profile found. Signing out.');
-          await signOut(auth);
+      // 2. Setup the persistent auth listener
+      unsub = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          await loadUserProfile(user.uid);
+          setCurrentUser(user);
+        } else {
           setCurrentUser(null);
           setUserProfile(null);
-          setLoading(false);
-          return;
         }
+        setLoading(false);
+      });
+    };
 
-        setCurrentUser(user);
-      } else {
-        setCurrentUser(null);
-        setUserProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return unsub;
+    initAuth();
+    return () => unsub && unsub();
   }, []);
 
   const value = {

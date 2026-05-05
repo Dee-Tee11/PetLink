@@ -151,17 +151,18 @@ export function AuthProvider({ children }) {
     let unsub = null;
 
     const initAuth = async () => {
-      // 1. Handle redirect result if we're returning from a Google redirect
-      if (sessionStorage.getItem('pendingGoogleRedirect')) {
-        sessionStorage.removeItem('pendingGoogleRedirect');
-        try {
-          const result = await getRedirectResult(auth);
-          if (result) {
-            await handleGoogleCredential(result);
-          }
-        } catch (err) {
-          console.error('Google redirect error:', err);
+      // 1. Always attempt to consume a pending Google redirect result.
+      //    getRedirectResult returns null when there's no pending redirect,
+      //    so it's safe to call on every load. We do NOT rely solely on the
+      //    sessionStorage flag because mobile browsers can clear it mid-redirect.
+      sessionStorage.removeItem('pendingGoogleRedirect');
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          await handleGoogleCredential(result);
         }
+      } catch (err) {
+        console.error('Google redirect error:', err);
       }
 
       // 2. Setup the persistent auth listener

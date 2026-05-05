@@ -6,7 +6,15 @@ import DashboardPage  from './pages/DashboardPage';
 import './index.css';
 
 function AppRouter() {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner spinner-dark" />
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <LandingPage />;

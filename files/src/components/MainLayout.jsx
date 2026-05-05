@@ -53,9 +53,6 @@ export default function MainLayout({ children, navCenter }) {
   const [showEdit,     setShowEdit]     = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const isOwner    = userProfile?.profileTypes?.includes('owner');
-  const isProvider = userProfile?.profileTypes?.includes('provider');
-
   const handleLogout = async () => {
     try { await logout(); } catch { /* ignore */ }
   };
@@ -72,11 +69,6 @@ export default function MainLayout({ children, navCenter }) {
           <div className="nav-logo">
             <LogoIconDark size={26} />
             <span>PetLink</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
-            {isOwner    && <span className="tag">🐾 Pet Owner</span>}
-            {isProvider && <span className="tag" style={{ borderColor: 'var(--sky)', color: 'var(--sky)' }}>💼 Provider</span>}
           </div>
 
           <div className="nav-spacer" />

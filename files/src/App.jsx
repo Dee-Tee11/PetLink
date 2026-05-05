@@ -1,6 +1,6 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthPage       from './pages/AuthPage';
+import LandingPage from './pages/LandingPage';
 import OnboardingPage from './pages/OnboardingPage';
 import DashboardPage  from './pages/DashboardPage';
 import './index.css';
@@ -9,7 +9,7 @@ function AppRouter() {
   const { currentUser, userProfile } = useAuth();
 
   if (!currentUser) {
-    return <AuthPage />;
+    return <LandingPage />;
   }
 
   if (!userProfile?.onboardingComplete) {

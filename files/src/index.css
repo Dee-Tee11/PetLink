@@ -89,7 +89,7 @@ button { cursor: pointer; }
   font-weight: 600;
 }
 .btn-google:hover { border-color: var(--sky); background: var(--sky-soft); }
-.btn-lg  { padding: 12px 26px; font-size: 15px; border-radius: var(--radius); }
+.btn-lg  { padding: 12px 26px; font-size: 17px; font-weight: 700; border-radius: var(--radius); }
 .btn-sm  { padding: 6px 12px; font-size: 12px; }
 .btn-xs  { padding: 4px 8px; font-size: 11px; }
 .btn-full { width: 100%; }

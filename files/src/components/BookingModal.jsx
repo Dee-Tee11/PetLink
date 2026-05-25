@@ -22,15 +22,18 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
   const selectedPet = pets.find(p => p.id === petId);
   const svcInfo     = getServiceType(service.type);
 
+  // Detect if this booking is for a company worker
+  const isCompanyWorker = !!provider.isCompanyWorker;
+
   const handleBook = async () => {
     setError('');
-    if (!date)                          { setError('Escolhe uma data.'); return; }
-    if (!time)                          { setError('Escolhe uma hora.'); return; }
-    if (pets.length > 0 && !petId)      { setError('Seleciona o teu pet.'); return; }
+    if (!date)                     { setError('Escolhe uma data.'); return; }
+    if (!time)                     { setError('Escolhe uma hora.'); return; }
+    if (pets.length > 0 && !petId) { setError('Seleciona o teu pet.'); return; }
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'bookings'), {
+      const bookingData = {
         owner_id:       currentUser.uid,
         owner_name:     userProfile?.displayName ?? '',
         caregiver_id:   provider.uid,
@@ -47,7 +50,17 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
         notes:          notes.trim(),
         status:         'pendente',
         createdAt:      serverTimestamp(),
-      });
+      };
+
+      // Attach company / worker metadata when booking a company worker
+      if (isCompanyWorker) {
+        bookingData.worker_id    = provider.worker_id;
+        bookingData.worker_name  = provider.displayName;
+        bookingData.company_id   = provider.companyUid;
+        bookingData.company_name = provider.companyName;
+      }
+
+      await addDoc(collection(db, 'bookings'), bookingData);
       setSuccess(true);
       setTimeout(() => { onSuccess?.(); onClose(); }, 1800);
     } catch (err) {
@@ -83,8 +96,8 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
               position: 'absolute', top: 14, right: 14,
               background: 'rgba(255,255,255,0.7)', border: 'none',
               borderRadius: '50%', width: 32, height: 32, fontSize: 18,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: 'var(--text)',
             }}
           >×</button>
 
@@ -102,7 +115,18 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
               <p style={{ fontSize: 14, color: 'var(--text-2)' }}>
                 <strong>{service.title}</strong> com <strong>{provider.displayName}</strong>
               </p>
-              <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 2 }}>
+              {/* Company badge */}
+              {isCompanyWorker && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 11, fontWeight: 600, padding: '2px 8px',
+                  borderRadius: 10, background: 'rgba(255,255,255,0.6)',
+                  color: '#3A6A9A', marginTop: 3,
+                }}>
+                  🏢 {provider.companyName}
+                </span>
+              )}
+              <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 3 }}>
                 {service.price}€/{service.unit}
                 {service.duration ? ` · ⏱ ${service.duration}` : ''}
               </p>
@@ -119,18 +143,25 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
                 Reserva enviada!
               </h3>
               <p style={{ fontSize: 14, color: 'var(--text-2)' }}>
-                O prestador irá confirmar em breve.
+                {isCompanyWorker
+                  ? `A empresa ${provider.companyName} irá confirmar em breve.`
+                  : 'O prestador irá confirmar em breve.'}
               </p>
             </div>
           ) : (
             <>
               {/* Pet selector */}
               {pets.length > 0 && (
-                <Input label="Para qual pet?" as="select" value={petId} onChange={e => setPetId(e.target.value)} style={{ cursor: 'pointer' }}>
+                <Input label="Para qual pet?" as="select" value={petId}
+                  onChange={e => setPetId(e.target.value)} style={{ cursor: 'pointer' }}>
                   <option value="">— Seleciona um pet —</option>
                   {pets.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.species === 'dog' ? '🐕' : p.species === 'cat' ? '🐈' : p.species === 'rabbit' ? '🐇' : p.species === 'bird' ? '🐦' : p.species === 'fish' ? '🐟' : '🐾'}{' '}
+                      {p.species === 'dog'    ? '🐕' :
+                       p.species === 'cat'    ? '🐈' :
+                       p.species === 'rabbit' ? '🐇' :
+                       p.species === 'bird'   ? '🐦' :
+                       p.species === 'fish'   ? '🐟' : '🐾'}{' '}
                       {p.name}{p.breed ? ` (${p.breed})` : ''}
                     </option>
                   ))}
@@ -143,14 +174,14 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
                   borderRadius: 'var(--radius-sm)', padding: '10px 14px', marginBottom: 14,
                   fontSize: 13, color: '#7A6A1A',
                 }}>
-                  ⚠️ Não tens pets adicionados. Podes agendar na mesma, mas adiciona um pet no dashboard para melhor experiência.
+                  ⚠️ Não tens pets adicionados. Podes agendar na mesma.
                 </div>
               )}
 
               {/* Date & Time */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 0 }}>
-                <Input label="Data *" type="date" min={today} value={date} onChange={e => setDate(e.target.value)} />
-                <Input label="Hora *" type="time" value={time} onChange={e => setTime(e.target.value)} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Input label="Data *"  type="date" min={today} value={date} onChange={e => setDate(e.target.value)} />
+                <Input label="Hora *"  type="time"             value={time} onChange={e => setTime(e.target.value)} />
               </div>
 
               {/* Notes */}
@@ -170,7 +201,10 @@ export default function BookingModal({ provider, service, onClose, onSuccess }) 
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Valor estimado</span>
-                <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>
+                <span style={{
+                  fontSize: 18, fontWeight: 700,
+                  fontFamily: 'var(--font-display)', color: 'var(--text)',
+                }}>
                   {service.price}€
                   <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-3)', fontFamily: 'var(--font-body)' }}>
                     /{service.unit}

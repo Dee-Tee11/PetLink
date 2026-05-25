@@ -11,41 +11,64 @@ function CheckIcon() {
 }
 
 const PROFILE_CARDS = [
-  { key: 'owner',    icon: '🐾',   iconClass: 'green',  title: 'Pet Owner',        desc: 'Find and book services for your pets.' },
-  { key: 'provider', icon: '🧑‍💼', iconClass: 'pink',   title: 'Service Provider', desc: 'Offer your skills to pet owners.' },
-  { key: 'both',     icon: '✨',   iconClass: 'yellow', title: 'Both',             desc: "I'm an owner AND a provider." },
+  { key: 'owner',    icon: '🐾',   iconClass: 'green',  title: 'Dono de Pet',        desc: 'Encontra e reserva serviços para os teus animais.' },
+  { key: 'provider', icon: '🧑‍💼', iconClass: 'pink',   title: 'Prestador Individual', desc: 'Oferece os teus serviços a donos de pets.' },
+  { key: 'company',  icon: '🏢',   iconClass: 'yellow', title: 'Empresa',            desc: 'Gere uma equipa de profissionais que prestam serviços.' },
+  { key: 'both',     icon: '✨',   iconClass: 'yellow', title: 'Dono + Prestador',   desc: 'Sou dono de pets E também quero oferecer serviços.' },
 ];
 
 export default function EditProfilePage({ onClose }) {
   const { currentUser, userProfile, saveUserProfile } = useAuth();
 
-  const currentType = userProfile?.profileTypes?.length === 2
+  // Derive current profile type
+  const currentTypes = userProfile?.profileTypes || [];
+  const currentType = currentTypes.includes('company')
+    ? 'company'
+    : currentTypes.length === 2
     ? 'both'
-    : (userProfile?.profileTypes?.[0] || 'owner');
+    : (currentTypes[0] || 'owner');
 
   const [displayName, setDisplayName] = useState(userProfile?.displayName || '');
-  const [bio,         setBio]         = useState(userProfile?.ownerProfile?.bio || '');
-  const [location,    setLocation]    = useState(userProfile?.ownerProfile?.location || '');
+  const [bio,         setBio]         = useState(userProfile?.ownerProfile?.bio || userProfile?.companyProfile?.bio || '');
+  const [location,    setLocation]    = useState(userProfile?.ownerProfile?.location || userProfile?.companyProfile?.location || '');
+  const [companyName, setCompanyName] = useState(userProfile?.companyProfile?.companyName || '');
   const [profileType, setProfileType] = useState(currentType);
   const [saving,      setSaving]      = useState(false);
   const [success,     setSuccess]     = useState(false);
   const [error,       setError]       = useState('');
 
+  const isCompany = profileType === 'company';
+
   const handleSave = async () => {
-    if (!displayName.trim()) { setError('Name is required.'); return; }
+    if (!displayName.trim())               { setError('O nome é obrigatório.'); return; }
+    if (isCompany && !companyName.trim())  { setError('O nome da empresa é obrigatório.'); return; }
+
     setSaving(true); setError('');
     try {
-      const profileTypes = profileType === 'both' ? ['owner', 'provider'] : [profileType];
-      await saveUserProfile(currentUser.uid, {
+      const profileTypes = profileType === 'both'    ? ['owner', 'provider'] :
+                           profileType === 'company' ? ['company']           : [profileType];
+
+      const data = {
         displayName: displayName.trim(),
         profileTypes,
         ownerProfile:    { bio, location },
         providerProfile: { bio, location },
-      });
+      };
+
+      if (isCompany) {
+        data.companyProfile = {
+          ...(userProfile?.companyProfile || {}),
+          companyName: companyName.trim(),
+          bio,
+          location,
+        };
+      }
+
+      await saveUserProfile(currentUser.uid, data);
       setSuccess(true);
       setTimeout(() => { setSuccess(false); onClose?.(); }, 1200);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('Algo correu mal. Tenta novamente.');
     } finally {
       setSaving(false);
     }
@@ -62,21 +85,18 @@ export default function EditProfilePage({ onClose }) {
     >
       <div style={{
         background: 'var(--white)', borderRadius: 'var(--radius-xl)',
-        width: '100%', maxWidth: 480, boxShadow: 'var(--shadow-lg)',
+        width: '100%', maxWidth: 500, boxShadow: 'var(--shadow-lg)',
         padding: '36px 32px', margin: 'auto',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <h2 style={{ fontSize: 26, fontFamily: 'var(--font-display)' }}>Edit Profile</h2>
+          <h2 style={{ fontSize: 26, fontFamily: 'var(--font-display)' }}>Editar Perfil</h2>
           {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'var(--bg-alt)', border: 'none', borderRadius: '50%',
-                width: 32, height: 32, fontSize: 18, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)',
-              }}
-            >×</button>
+            <button onClick={onClose} style={{
+              background: 'var(--bg-alt)', border: 'none', borderRadius: '50%',
+              width: 32, height: 32, fontSize: 18, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)',
+            }}>×</button>
           )}
         </div>
 
@@ -84,32 +104,44 @@ export default function EditProfilePage({ onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--yellow), var(--green-mid))',
+            background: isCompany
+              ? 'linear-gradient(135deg, var(--yellow), var(--primary))'
+              : 'linear-gradient(135deg, var(--yellow), var(--green-mid))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, fontWeight: 700, color: 'var(--text)', flexShrink: 0,
+            fontSize: isCompany ? 28 : 24, fontWeight: 700, color: 'var(--text)', flexShrink: 0,
           }}>
-            {displayName?.[0]?.toUpperCase() || '?'}
+            {isCompany ? '🏢' : (displayName?.[0]?.toUpperCase() || '?')}
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{displayName || 'Your name'}</div>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>
+              {isCompany ? (companyName || 'Nome da empresa') : (displayName || 'O teu nome')}
+            </div>
             <div style={{ fontSize: 13, color: 'var(--text-3)' }}>{userProfile?.email}</div>
           </div>
         </div>
 
         {/* Fields */}
-        <Input label="Display name *" placeholder="e.g. Sofia Martins"
+        <Input label="O teu nome *" placeholder="ex: Sofia Martins"
           value={displayName} onChange={e => setDisplayName(e.target.value)} />
 
-        <Input label="Bio" as="textarea"
-          style={{ minHeight: 80, resize: 'vertical' }}
-          placeholder="Tell the community a little about yourself…"
+        {/* Company name field — only when company selected */}
+        {isCompany && (
+          <Input label="Nome da empresa *" placeholder="ex: PetCare Porto Lda."
+            value={companyName} onChange={e => setCompanyName(e.target.value)} />
+        )}
+
+        <Input label={isCompany ? 'Descrição da empresa' : 'Bio'}
+          as="textarea" style={{ minHeight: 80, resize: 'vertical' }}
+          placeholder={isCompany
+            ? 'Descreve os serviços e a missão da empresa…'
+            : 'Conta um pouco sobre ti para a comunidade…'}
           value={bio} onChange={e => setBio(e.target.value)} />
 
-        <Input label="Location" placeholder="e.g. Porto, Portugal"
+        <Input label="Localização" placeholder="ex: Porto, Portugal"
           value={location} onChange={e => setLocation(e.target.value)} />
 
         {/* Profile type */}
-        <label className="label" style={{ marginBottom: 10 }}>I am a…</label>
+        <label className="label" style={{ marginBottom: 10 }}>Tipo de perfil</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
           {PROFILE_CARDS.map(card => (
             <div
@@ -132,13 +164,13 @@ export default function EditProfilePage({ onClose }) {
           ))}
         </div>
 
-        {error   && <p className="error-msg" style={{ marginBottom: 12 }}>{error}</p>}
-        {success && <p style={{ color: 'var(--success)', fontSize: 14, marginBottom: 12, fontWeight: 600 }}>✅ Profile saved!</p>}
+        {error   && <p className="error-msg"   style={{ marginBottom: 12 }}>{error}</p>}
+        {success && <p style={{ color: 'var(--success)', fontSize: 14, marginBottom: 12, fontWeight: 600 }}>✅ Perfil guardado!</p>}
 
         <div style={{ display: 'flex', gap: 10 }}>
-          {onClose && <Button variant="secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</Button>}
+          {onClose && <Button variant="secondary" style={{ flex: 1 }} onClick={onClose}>Cancelar</Button>}
           <Button variant="primary" style={{ flex: 2 }} onClick={handleSave} loading={saving}>
-            Save changes
+            Guardar alterações
           </Button>
         </div>
       </div>

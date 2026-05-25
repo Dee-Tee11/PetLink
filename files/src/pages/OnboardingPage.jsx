@@ -52,7 +52,7 @@ function AddPetForm({ onAdd, onCancel }) {
       </div>
 
       <div className="add-pet-form-grid">
-        <Input label="Name *"       placeholder="e.g. Buddy"   value={name}  onChange={e => setName(e.target.value)} />
+        <Input label="Name *"       placeholder="e.g. Buddy"    value={name}  onChange={e => setName(e.target.value)} />
         <Input label="Breed"        placeholder="e.g. Labrador" value={breed} onChange={e => setBreed(e.target.value)} />
         <Input label="Age (years)"  type="number" min="0" max="30" placeholder="e.g. 3" value={age} onChange={e => setAge(e.target.value)} />
       </div>
@@ -72,6 +72,7 @@ export default function OnboardingPage() {
 
   const [step,        setStep]        = useState(0);
   const [name,        setName]        = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [profileType, setProfileType] = useState('');
   const [pets,        setPets]        = useState([]);
   const [showAddPet,  setShowAddPet]  = useState(false);
@@ -89,17 +90,34 @@ export default function OnboardingPage() {
 
   const removePet = (id) => setPets(ps => ps.filter(p => p.id !== id));
 
+  // Profiles that skip the pets step
+  const skipPets = profileType === 'provider' || profileType === 'company';
+
   const finish = async () => {
     if (!currentUser?.uid) { setError('Session expired. Please sign out and sign in again.'); return; }
     setSaving(true);
     try {
-      const profileTypes = profileType === 'both' ? ['owner', 'provider'] : [profileType];
-      await saveUserProfile(currentUser.uid, {
+      const profileTypes = profileType === 'both' ? ['owner', 'provider'] :
+                           profileType === 'company' ? ['company'] : [profileType];
+
+      const data = {
         displayName:        name.trim(),
         profileTypes,
-        pets:               profileType === 'provider' ? [] : pets,
+        pets:               skipPets ? [] : pets,
         onboardingComplete: true,
-      });
+      };
+
+      // Initialise company profile with the entered company name
+      if (profileType === 'company') {
+        data.companyProfile = {
+          companyName: companyName.trim() || name.trim(),
+          bio:         '',
+          location:    '',
+          workers:     [],
+        };
+      }
+
+      await saveUserProfile(currentUser.uid, data);
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -126,7 +144,7 @@ export default function OnboardingPage() {
         {/* Progress dots */}
         {step < 3 && (
           <div className="onboard-progress">
-            {STEPS.slice(0, 3).map((_, i) => (
+            {STEPS.slice(0, skipPets ? 2 : 3).map((_, i) => (
               <div key={i} className={`onboard-dot ${i === step ? 'active' : i < step ? 'done' : ''}`} />
             ))}
           </div>
@@ -135,14 +153,14 @@ export default function OnboardingPage() {
         {/* ── Step 0: Name ── */}
         {step === 0 && (
           <>
-            <p className="onboard-step-label">Step 1 of 3</p>
-            <h2 className="onboard-step-title">What's your name?</h2>
-            <p className="onboard-step-sub">This is how the community will know you.</p>
+            <p className="onboard-step-label">Passo 1</p>
+            <h2 className="onboard-step-title">Como te chamas?</h2>
+            <p className="onboard-step-sub">É assim que a comunidade te vai conhecer.</p>
 
             <Input
-              label="Full name or nickname"
+              label="Nome completo ou alcunha"
               style={{ fontSize: 17 }}
-              placeholder="e.g. Sofia Martins"
+              placeholder="ex: Sofia Martins"
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && canNext() && next()}
@@ -151,7 +169,7 @@ export default function OnboardingPage() {
 
             <div className="onboard-actions">
               <Button variant="primary" size="lg" onClick={next} disabled={!canNext()}>
-                Continue →
+                Continuar →
               </Button>
             </div>
           </>
@@ -160,15 +178,36 @@ export default function OnboardingPage() {
         {/* ── Step 1: Profile type ── */}
         {step === 1 && (
           <>
-            <p className="onboard-step-label">Step 2 of 3</p>
-            <h2 className="onboard-step-title">How will you use PetLink?</h2>
-            <p className="onboard-step-sub">You can always add or change this later.</p>
+            <p className="onboard-step-label">Passo 2</p>
+            <h2 className="onboard-step-title">Como vais usar o PetLink?</h2>
+            <p className="onboard-step-sub">Podes sempre alterar mais tarde.</p>
 
             <div className="profile-cards">
               {[
-                { key: 'owner',    icon: '🐾',   iconClass: 'orange', title: 'Pet Owner',        desc: 'Find and book services for your pets — grooming, walking, vet visits & more.' },
-                { key: 'provider', icon: '🧑‍💼', iconClass: 'green',  title: 'Service Provider', desc: 'Offer your skills and services to pet owners in your area.' },
-                { key: 'both',     icon: '✨',   iconClass: 'both',   title: 'Both',             desc: "I'm a pet owner AND I'd also like to offer services." },
+                {
+                  key: 'owner',
+                  icon: '🐾', iconClass: 'green',
+                  title: 'Dono de Pet',
+                  desc: 'Encontra e reserva serviços para os teus animais — grooming, passeios, consultas e mais.',
+                },
+                {
+                  key: 'provider',
+                  icon: '🧑‍💼', iconClass: 'pink',
+                  title: 'Prestador Individual',
+                  desc: 'Oferece os teus serviços a donos de pets na tua área.',
+                },
+                {
+                  key: 'company',
+                  icon: '🏢', iconClass: 'yellow',
+                  title: 'Empresa',
+                  desc: 'Gere uma equipa de profissionais que prestam serviços a animais. Adiciona trabalhadores e os seus serviços.',
+                },
+                {
+                  key: 'both',
+                  icon: '✨', iconClass: 'both',
+                  title: 'Dono + Prestador',
+                  desc: 'Sou dono de pets E também quero oferecer serviços.',
+                },
               ].map(card => (
                 <div
                   key={card.key}
@@ -187,32 +226,50 @@ export default function OnboardingPage() {
               ))}
             </div>
 
+            {/* Company name field shown inline when company is selected */}
+            {profileType === 'company' && (
+              <div style={{ marginTop: 16 }}>
+                <Input
+                  label="Nome da empresa *"
+                  placeholder="ex: PetCare Porto Lda."
+                  value={companyName}
+                  onChange={e => setCompanyName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            )}
+
             {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
 
             <div className="onboard-actions">
-              <Button variant="secondary" onClick={back} disabled={saving}>← Back</Button>
-              {profileType === 'provider' ? (
-                <Button variant="primary" size="lg" onClick={finish} disabled={!canNext() || saving} loading={saving}>
-                  Finish →
+              <Button variant="secondary" onClick={back} disabled={saving}>← Voltar</Button>
+
+              {/* Provider and company skip pets, go straight to finish */}
+              {skipPets ? (
+                <Button
+                  variant="primary" size="lg"
+                  onClick={finish}
+                  disabled={!canNext() || saving || (profileType === 'company' && !companyName.trim())}
+                  loading={saving}
+                >
+                  Concluir →
                 </Button>
               ) : (
                 <Button variant="primary" size="lg" onClick={next} disabled={!canNext()}>
-                  Continue →
+                  Continuar →
                 </Button>
               )}
             </div>
           </>
         )}
 
-        {/* ── Step 2: Add pets ── */}
-        {step === 2 && (
+        {/* ── Step 2: Add pets (owner / both only) ── */}
+        {step === 2 && !skipPets && (
           <>
-            <p className="onboard-step-label">Step 3 of 3 · Optional</p>
-            <h2 className="onboard-step-title">Add your pets</h2>
+            <p className="onboard-step-label">Passo 3 · Opcional</p>
+            <h2 className="onboard-step-title">Adiciona os teus pets</h2>
             <p className="onboard-step-sub">
-              {profileType === 'provider'
-                ? 'Skip this if you prefer — you can add pets to your profile anytime.'
-                : "Let service providers know who they'll be caring for."}
+              Informa os prestadores de serviços sobre quem vão cuidar.
             </p>
 
             {pets.length > 0 && (
@@ -240,19 +297,19 @@ export default function OnboardingPage() {
               />
             ) : (
               <Button variant="secondary" full style={{ marginBottom: 8 }} onClick={() => setShowAddPet(true)}>
-                + Add a pet
+                + Adicionar pet
               </Button>
             )}
 
             {error && <p className="error-msg" style={{ marginTop: 8 }}>{error}</p>}
 
             <div className="onboard-actions">
-              <Button variant="secondary" onClick={back}>← Back</Button>
+              <Button variant="secondary" onClick={back}>← Voltar</Button>
               {pets.length === 0 ? (
-                <Button variant="ghost" onClick={finish} loading={saving}>Skip for now</Button>
+                <Button variant="ghost" onClick={finish} loading={saving}>Saltar por agora</Button>
               ) : (
                 <Button variant="primary" size="lg" onClick={finish} disabled={saving || showAddPet} loading={saving}>
-                  Finish →
+                  Concluir →
                 </Button>
               )}
             </div>
